@@ -3,91 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gürkan Yapı Malzemeleri - Kurumsal Sevkiyat Takip Sistemi</title>
-  <meta name="description" content="Gürkan Yapı Malzemeleri haftalık sevkiyat ve lojistik yönetim portalı.">
+  <title>Gürkan Yapı Malzemeleri - Sevkiyat Takip Sistemi</title>
+  
+  <!-- Kurumsal Stil Dosyası -->
   <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- 1. KURUMSAL HEADER -->
+  <!-- ==========================================================================
+       1. KURUMSAL HEADER
+       ========================================================================== -->
   <header class="app-header">
     <div class="header-container">
       <div class="brand-section">
         <div class="brand-logo-wrapper">
-          <img src="images/logo.png" alt="Gürkan Yapı Logo" class="brand-logo-img">
+          <img src="logo.png" alt="Gürkan Yapı Logo" class="brand-logo-img" onerror="this.src='https://via.placeholder.com/40/0f172a/ffffff?text=GY'">
         </div>
         <div class="brand-titles">
           <h1>GÜRKAN YAPI MALZEMELERİ</h1>
-          <p>Haftalık Sevkiyat & Lojistik Planlama Portalı</p>
+        </div>
+        <div class="sync-badge" title="Gerçek Zamanlı Veritabanı Senkronizasyonu Aktif">
+          <span class="pulse-dot"></span>
+          <span>CANLI</span>
         </div>
       </div>
 
       <div class="header-actions">
-        <div class="sync-badge" title="Canlı senkronizasyon aktif">
-          <span class="pulse-dot"></span>
-          <span>Canlı Senkronize</span>
-        </div>
-
-        <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli ikaz durumunu değiştir">
-          Sesli İkaz Açık
+        <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli bildirimleri aç/kapat">
+          🔊 Sesli İkaz Açık
         </button>
-
-        <button id="testSoundBtn" class="btn-secondary" title="İkaz sesini test et">
-          Ses Testi
+        <button id="testSoundBtn" class="btn-secondary" title="Ses motorunu test edin">
+          🔔 Ses Testi
         </button>
-
+        <button id="manageRepsBtn" class="btn-secondary" title="Pazarlamacı ve Temsilci Listesini Yönetin">
+          ⚙️ Pazarlamacı Yönetimi
+        </button>
         <button id="newShipmentBtn" class="btn-primary">
-          + Sevkiyat Girişi
+          <span>➕ YENİ SEVKİYAT EKLE</span>
         </button>
       </div>
     </div>
   </header>
 
-  <!-- 2. KURUMSAL KONTROL VE İSTATİSTİK PANERİ -->
-  <div class="dashboard-bar">
-    <!-- KPI Kartları -->
+  <!-- ==========================================================================
+       2. KONTROL BAR & METRİKLER (KPI & ARA-FİLTRE)
+       ========================================================================== -->
+  <section class="dashboard-bar">
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-info">
-          <div class="lbl">Toplam Planlanan</div>
-          <div id="totalCount" class="val">0</div>
+          <span class="lbl">Haftalık Toplam</span>
+          <span class="val" id="totalCount">0</span>
         </div>
       </div>
       <div class="metric-card status-pending">
         <div class="metric-info">
-          <div class="lbl">Bekleyen Sevkiyatlar</div>
-          <div id="pendingCount" class="val">0</div>
+          <span class="lbl">Beklemede</span>
+          <span class="val" id="pendingCount">0</span>
         </div>
       </div>
       <div class="metric-card status-transit">
         <div class="metric-info">
-          <div class="lbl">Yoldaki Sevkiyatlar</div>
-          <div id="transitCount" class="val">0</div>
+          <span class="lbl">Hazırlanan / Yolda</span>
+          <span class="val" id="transitCount">0</span>
         </div>
       </div>
       <div class="metric-card status-delivered">
         <div class="metric-info">
-          <div class="lbl">Tamamlanan Sevkiyatlar</div>
-          <div id="deliveredCount" class="val">0</div>
+          <span class="lbl">Teslim Edildi</span>
+          <span class="val" id="deliveredCount">0</span>
         </div>
       </div>
     </div>
 
-    <!-- Hafta Seçici & Arama -->
     <div class="controls-bar">
       <div class="week-navigator">
-        <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◀</button>
-        <div id="weekTitle" class="week-title">17 Ağustos - 22 Ağustos 2026</div>
-        <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">▶</button>
-        <button id="todayWeekBtn" class="btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Bu Hafta</button>
+        <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◄</button>
+        <span id="weekTitle" class="week-title">12 - 17 Ağustos 2026</span>
+        <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">►</button>
+        <button id="todayWeekBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem;">Bu Hafta</button>
       </div>
 
       <div class="search-filter-group">
         <div class="search-input-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Müşteri adı, mahalle, ilçe veya adres ara...">
+          <input type="text" id="searchInput" placeholder="Müşteri, adres, temsilci ara...">
         </div>
-
         <select id="filterStatusSelect" class="filter-select">
           <option value="ALL">Tüm Durumlar</option>
           <option value="Beklemede">Beklemede</option>
@@ -98,28 +102,31 @@
         </select>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- 3. HAFTALIK SEVKİYAT TAKVİMİ (6 KOLON: PAZARTESİ - CUMARTESİ) -->
+  <!-- ==========================================================================
+       3. HAFTALIK TAKVİM IZGARASI (6 GÜN)
+       ========================================================================== -->
   <main class="calendar-wrapper">
     <div id="weeklyGrid" class="weekly-grid">
-      <!-- Sütunlar JavaScript ile dinamik render edilecektir -->
+      <!-- JavaScript dinamik oluşturacak -->
     </div>
   </main>
 
-  <!-- 4. YENİ / DÜZENLE MODAL FORMU -->
+  <!-- ==========================================================================
+       4. SEVKİYAT EKLE / DÜZENLE MODAL
+       ========================================================================== -->
   <div id="shipmentModal" class="modal-overlay">
     <div class="modal-card">
       <div class="modal-header">
-        <h2 id="modalTitle">SEVKİYAT GİRİŞİ</h2>
+        <h2 id="modalTitle">YENİ SEVKİYAT GİRİŞİ</h2>
         <button id="closeModalBtn" class="modal-close-btn">&times;</button>
       </div>
-
       <form id="shipmentForm">
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group">
-              <label for="inputDay">Sevkiyat Günü *</label>
+              <label for="inputDay">Sevkiyat Günü</label>
               <select id="inputDay" required>
                 <option value="1">Pazartesi</option>
                 <option value="2">Salı</option>
@@ -131,7 +138,7 @@
             </div>
 
             <div class="form-group">
-              <label for="inputShipmentOrder">Sevkiyat Sırası *</label>
+              <label for="inputShipmentOrder">Sevk Sırası</label>
               <select id="inputShipmentOrder" required>
                 <option value="1. Sevk">1. Sevk</option>
                 <option value="2. Sevk">2. Sevk</option>
@@ -142,27 +149,34 @@
             </div>
 
             <div class="form-group full-width">
-              <label for="inputTimeOfDay">Zaman Dilimi *</label>
-              <select id="inputTimeOfDay" required>
-                <option value="Sabah Sevkiyatı">Sabah Sevkiyatı</option>
-                <option value="Öğleden Sonra Sevkiyatı">Öğleden Sonra Sevkiyatı</option>
+              <label for="inputCustomerName">Müşteri / Alıcı Unvanı</label>
+              <input type="text" id="inputCustomerName" placeholder="Örn: Yılmaz İnşaat A.Ş." required>
+            </div>
+
+            <div class="form-group">
+              <label for="inputRepresentative">Müşteri Temsilcisi / Pazarlamacı</label>
+              <select id="inputRepresentative" required>
+                <!-- JS Dinamik Pazarlamacı Listesi Dolduracak -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputTimeOfDay">Sevkiyat Zaman Dilimi</label>
+              <select id="inputTimeOfDay">
+                <option value="Sabah Sevkiyatı">Sabah Sevkiyatı (08:00 - 12:00)</option>
+                <option value="Öğleden Sonra Sevkiyatı">Öğleden Sonra (13:00 - 17:00)</option>
                 <option value="Gün Boyu / Esnek">Gün Boyu / Esnek</option>
               </select>
             </div>
 
             <div class="form-group full-width">
-              <label for="inputCustomerName">Müşteri / Alıcı Unvanı *</label>
-              <input type="text" id="inputCustomerName" required placeholder="Örn: Kadıköy Şantiyesi - Hakan Bey veya Ahmet Yılmaz">
+              <label for="inputAddress">Teslimat Adresi</label>
+              <textarea id="inputAddress" rows="2" placeholder="İlçe ve adres bilgilerini tam giriniz..." required></textarea>
             </div>
 
-            <div class="form-group full-width">
-              <label for="inputAddress">Teslimat Adresi (Mahalle, İlçe, İl) *</label>
-              <input type="text" id="inputAddress" required placeholder="Örn: Caferağa Mah. Moda Cad. No:45 Kadıköy / İstanbul">
-            </div>
-
-            <div class="form-group full-width">
-              <label for="inputStatus">Sevkiyat Durumu *</label>
-              <select id="inputStatus" required>
+            <div class="form-group">
+              <label for="inputStatus">Sevkiyat Durumu</label>
+              <select id="inputStatus">
                 <option value="Beklemede">Beklemede</option>
                 <option value="Hazırlanıyor">Hazırlanıyor</option>
                 <option value="Yolda">Yolda</option>
@@ -172,25 +186,56 @@
             </div>
 
             <div class="form-group full-width">
-              <label for="inputNotes">Sevkiyat Notları / Açıklama</label>
-              <textarea id="inputNotes" rows="2" placeholder="Özel talimatlar veya notlar..."></textarea>
+              <label for="inputNotes">Sevkiyat Notu (Opsiyonel)</label>
+              <input type="text" id="inputNotes" placeholder="Örn: Vinçli araç yanaşacak, kapıda nakit ödeme.">
             </div>
           </div>
         </div>
-
         <div class="modal-footer">
           <button type="button" id="cancelModalBtn" class="btn-secondary">İptal</button>
-          <button type="submit" class="btn-primary">Kaydet</button>
+          <button type="submit" class="btn-primary">Kayıt Oluştur</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- ==========================================================================
+       5. PAZARLAMACI / TEMSİLCİ YÖNETİMİ MODAL
+       ========================================================================== -->
+  <div id="repManagerModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>PAZARLAMACI VE TEMSİLCİ YÖNETİMİ</h2>
+        <button id="closeRepModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="add-rep-bar">
+          <input type="text" id="newRepInput" placeholder="Yeni Pazarlamacı / Temsilci Adı Giriniz...">
+          <button type="button" id="addRepBtn" class="btn-primary">➕ Ekle</button>
+        </div>
+        
+        <div class="rep-list-container">
+          <ul id="repListEl" class="rep-list">
+            <!-- JS Dinamik Oluşturacak -->
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="doneRepModalBtn" class="btn-primary">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       6. ANLIK TOAST BİLDİRİMLERİ
+       ========================================================================== -->
   <div id="toastContainer" class="toast-container"></div>
 
+  <!-- SUPABASE PROJE AYARLARI -->
   <script src="js/supabase-config.js"></script>
-  <script src="js/mockData.js"></script>
+  <!-- REALTIME CANLI VERİTABANI İLETİŞİM MOTORU -->
   <script src="js/sync.js"></script>
+  <!-- ANA UYGULAMA MANTIĞI -->
   <script src="js/app.js"></script>
 </body>
 </html>

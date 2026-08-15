@@ -1,111 +1,107 @@
 /**
- * GÜRKAN YAPI MALZEMELERİ - SUPABASE KALICI VERİTABANI & CANLI SENKRONİZASYON MOTORU
+ * GÜRKAN YAPI MALZEMELERİ - ANLIK CANLI VERİTABANI & SES MOTORU (SYNC MANAGER)
  */
 
 class SyncManager {
   constructor() {
-    this.channelName = 'sevkiyat_takip_channel_v1';
-    this.broadcastChannel = null;
-    this.audioEnabled = true;
-    this.audioContext = null;
     this.listeners = [];
+    this.audioContext = null;
+    this.audioEnabled = true;
+    this.clientId = 'CLIENT_' + Math.random().toString(36).substring(2, 9);
+    this.channel = null;
     this.supabase = null;
-    this.realtimeChannel = null;
-    this.isCloudConnected = false;
 
     this.initAudio();
-    this.initBroadcastChannel();
-    this.initStorageListener();
     this.initSupabase();
   }
 
-  // --- 1. SUPABASE KALICI VERİTABANI BAĞLANTISI ---
+  // --- 1. SUPABASE REALTIME & PERMANENT POSTGRESQL ENGINE ---
   initSupabase() {
-    const savedConfig = localStorage.getItem('sevkiyat_supabase_config');
-    let config = null;
-
-    if (savedConfig) {
-      try { config = JSON.parse(savedConfig); } catch (e) {}
-    }
-
-    if (!config && window.SUPABASE_CONFIG) {
-      config = window.SUPABASE_CONFIG;
-    }
-
-    if (config && config.url && config.url.includes('supabase.co')) {
-      this.loadSupabaseSDK(config);
-    }
-  }
-
-  loadSupabaseSDK(config) {
-    if (window.supabase) {
-      this.setupSupabaseListeners(config);
+    if (typeof window.SUPABASE_CONFIG === 'undefined') {
+      console.warn("Supabase yapılandırma dosyası (supabase-config.js) bulunamadı.");
       return;
     }
 
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-    script.onload = () => {
-      this.setupSupabaseListeners(config);
-    };
-    script.onerror = () => {
-      console.warn("Supabase SDK yüklenemedi.");
-    };
-    document.head.appendChild(script);
+    const config = window.SUPABASE_CONFIG;
+    if (!config.url || !config.anonKey || config.url.includes('YOUR_SUPABASE_URL')) {
+      console.warn("Supabase anahtarları henüz girilmemiş. Yerel depolama modunda çalışılıyor.");
+      return;
+    }
+
+    if (window.supabase) {
+      this.loadSupabaseSDK(config);
+    } else {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+      script.onload = () => this.loadSupabaseSDK(config);
+      script.onerror = () => {
+        console.warn("Supabase SDK CDN'den yüklenemedi.");
+      };
+      document.head.appendChild(script);
+    }
+  }
+
+  async loadSupabaseSDK(config) {
+    try {
+      this.supabase = window.supabase.createClient(config.url, config.anonKey);
+      await this.setupSupabaseListeners(config);
+      this.updateCloudStatusUI(true);
+    } catch (err) {
+      console.warn("Supabase başlatma hatası:", err);
+      this.updateCloudStatusUI(false);
+    }
   }
 
   async setupSupabaseListeners(config) {
     try {
-      if (!window.supabase || !window.supabase.createClient) return;
-
-      this.supabase = window.supabase.createClient(config.url, config.anonKey);
-      this.isCloudConnected = true;
-      this.updateCloudStatusUI(true);
-
-      // A) Başlangıçta Tüm Verileri Doğrudan Supabase Veritabanından Çek
+      // A) Başlangıçta Tüm Verileri Doğrudan Supabase Veritabanından Çek (Kalıcı PostgreSQL)
       await this.pullFromSupabaseDB();
 
-      // B) Supabase Database Tablo Değişikliklerini Canlı Dinle (Postgres Changes)
+      // B) Supabase Realtime WebSocket Kanalını Başlat (Değişiklikleri Anlık Yayınla)
+      this.channel = this.supabase.channel('public:shipments_data');
+
+      this.channel
+        .on('broadcast', { event: 'SHIPMENT_CHANGE' }, (payload) => {
+          if (payload.payload && payload.payload.sender_id !== this.clientId) {
+            this.handleIncomingBroadcast(payload.payload);
+          }
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            this.updateCloudStatusUI(true);
+          }
+        });
+
+      // C) Supabase Database Tablo Değişikliklerini Canlı Dinle (Postgres Changes)
       this.supabase
-        .channel('db-changes')
+        .channel('schema-db-changes')
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'shipments_data' },
           (payload) => {
-            if (payload && payload.new) {
-              const newRec = payload.new;
-              if (newRec.sender_id !== this.getSenderId()) {
-                if (newRec.shipments) {
-                  localStorage.setItem('sevkiyat_data_v1', JSON.stringify(newRec.shipments));
-                }
-                if (newRec.disabled_days) {
-                  localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(newRec.disabled_days));
-                }
-                this.handleIncomingMessage({
-                  action: newRec.last_action || 'UPDATE',
-                  senderId: newRec.sender_id
-                });
+            if (payload.new && payload.new.sender_id !== this.clientId) {
+              if (payload.new.shipments) {
+                localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.new.shipments));
               }
+              if (payload.new.disabled_days) {
+                localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.new.disabled_days));
+              }
+              if (payload.new.representatives) {
+                localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.new.representatives));
+              }
+              this.triggerListeners({ action: 'DB_LIVE_UPDATE' });
             }
           }
         )
         .subscribe();
 
-      // C) Realtime WebSocket Broadcast Kanalı
-      this.realtimeChannel = this.supabase.channel('sevkiyat-live-sync');
-      this.realtimeChannel.on('broadcast', { event: 'sync_action' }, (event) => {
-        if (event && event.payload) {
-          this.handleIncomingMessage(event.payload);
-        }
-      });
-      this.realtimeChannel.subscribe();
-
     } catch (err) {
       console.warn("Supabase bağlantı hatası:", err);
+      this.updateCloudStatusUI(false);
     }
   }
 
-  // SUPABASE VERİTABANINDAN VERİ ÇEKME (Çerezler silinse bile buradan gelir)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (Pazarlamacılar, Sevkiyatlar, Kapalı Günler, Kayıt Tarihleri)
   async pullFromSupabaseDB() {
     if (!this.supabase) return;
 
@@ -123,6 +119,9 @@ class SyncManager {
         if (data.disabled_days) {
           localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(data.disabled_days));
         }
+        if (data.representatives) {
+          localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(data.representatives));
+        }
         this.triggerListeners({ action: 'RELOAD_FROM_DB' });
       }
     } catch (e) {
@@ -130,13 +129,14 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINA PERMANENT YAZMA (Kalıcı Kayıt)
+  // SUPABASE VERİTABANINA PERMANENT YAZMA (Kalıcı PostgreSQL Kaydı)
   async pushToSupabaseDB(action, dataPayload) {
     if (!this.supabase) return;
 
     try {
       const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
       const disabledDays = JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]');
+      const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
 
       await this.supabase
         .from('shipments_data')
@@ -144,6 +144,7 @@ class SyncManager {
           id: 'global_state',
           shipments: shipments,
           disabled_days: disabledDays,
+          representatives: representatives,
           last_action: action,
           sender_id: this.getSenderId(),
           updated_at: new Date().toISOString()
@@ -158,7 +159,9 @@ class SyncManager {
     const syncBadge = document.querySelector('.sync-badge');
     if (syncBadge) {
       if (isConnected) {
-        syncBadge.innerHTML = `<span class="pulse-dot" style="background:#22c55e;"></span><span>Supabase Veritabanı Kalıcı Bağlı</span>`;
+        syncBadge.innerHTML = `<span class="pulse-dot"></span><span>CANLI</span>`;
+      } else {
+        syncBadge.innerHTML = `<span class="pulse-dot" style="background:#ef4444; animation:none;"></span><span>ÇEVRİMDIŞI</span>`;
       }
     }
   }
@@ -181,9 +184,9 @@ class SyncManager {
       }
     };
 
-    window.addEventListener('click', unlockAudio, { once: true });
-    window.addEventListener('keydown', unlockAudio, { once: true });
-    window.addEventListener('touchstart', unlockAudio, { once: true });
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+      document.addEventListener(evt, unlockAudio, { once: true });
+    });
   }
 
   setAudioEnabled(enabled) {
@@ -209,76 +212,45 @@ class SyncManager {
       const now = this.audioContext.currentTime;
 
       if (type === 'new_shipment') {
-        // PREMİUM KRİSTAL ZİL AKORU (F5 -> A5 -> C6)
-        const playAcousticNote = (fundamentalFreq, startTime, duration, gainVal = 0.22) => {
-          const osc1 = this.audioContext.createOscillator();
-          const gain1 = this.audioContext.createGain();
+        // ✨ YENİ SEVKİYAT SİNYALİ: 3 Aşamalı Kristal Çan Melodisi (F5 -> A5 -> C6)
+        const notes = [698.46, 880.00, 1046.50];
+        notes.forEach((freq, index) => {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
 
-          osc1.type = 'sine';
-          osc1.frequency.setValueAtTime(fundamentalFreq, startTime);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + index * 0.1);
 
-          gain1.gain.setValueAtTime(0.0001, startTime);
-          gain1.gain.linearRampToValueAtTime(gainVal, startTime + 0.008);
-          gain1.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+          gain.gain.setValueAtTime(0.001, now + index * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.25, now + index * 0.1 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.1 + 0.6);
 
-          const osc2 = this.audioContext.createOscillator();
-          const gain2 = this.audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(this.audioContext.destination);
 
-          osc2.type = 'sine';
-          osc2.frequency.setValueAtTime(fundamentalFreq * 2.005, startTime);
-
-          gain2.gain.setValueAtTime(0.0001, startTime);
-          gain2.gain.linearRampToValueAtTime(gainVal * 0.35, startTime + 0.005);
-          gain2.gain.exponentialRampToValueAtTime(0.0001, startTime + (duration * 0.5));
-
-          const filter = this.audioContext.createBiquadFilter();
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(2600, startTime);
-
-          osc1.connect(gain1);
-          osc2.connect(gain2);
-
-          gain1.connect(filter);
-          gain2.connect(filter);
-
-          filter.connect(this.audioContext.destination);
-
-          osc1.start(startTime);
-          osc2.start(startTime);
-
-          osc1.stop(startTime + duration);
-          osc2.stop(startTime + duration);
-        };
-
-        playAcousticNote(698.46, now, 0.4, 0.22);
-        playAcousticNote(880.00, now + 0.1, 0.5, 0.26);
-        playAcousticNote(1046.50, now + 0.22, 0.7, 0.30);
-
+          osc.start(now + index * 0.1);
+          osc.stop(now + index * 0.1 + 0.65);
+        });
       } else if (type === 'update_shipment') {
+        // 🔄 DURUM GÜNCELLEME: Yumuşak Marimba Pop Sesi
         const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
-        const filter = this.audioContext.createBiquadFilter();
 
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(659.25, now);
-        osc.frequency.exponentialRampToValueAtTime(523.25, now + 0.08);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now);
+        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08);
 
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.linearRampToValueAtTime(0.18, now + 0.004);
-        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
-
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1900, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
         osc.connect(gain);
-        gain.connect(filter);
-        filter.connect(this.audioContext.destination);
+        gain.connect(this.audioContext.destination);
 
         osc.start(now);
-        osc.stop(now + 0.09);
+        osc.stop(now + 0.28);
       }
     } catch (e) {
-      console.warn("Sesli ikaz çalınamadı:", e);
+      console.warn("Ses çalma hatası:", e);
     }
   }
 
@@ -286,94 +258,75 @@ class SyncManager {
     this.playAlertSound('new_shipment');
   }
 
-  // --- 3. SENKRONİZASYON VE MESAJ YAYINLAMA ---
-  initBroadcastChannel() {
-    if ('BroadcastChannel' in window) {
-      try {
-        this.broadcastChannel = new BroadcastChannel(this.channelName);
-        this.broadcastChannel.onmessage = (event) => {
-          this.handleIncomingMessage(event.data);
-        };
-      } catch (e) {}
-    }
-  }
-
-  initStorageListener() {
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'sevkiyat_trigger_sync') {
-        try {
-          const payload = JSON.parse(e.newValue);
-          if (payload) {
-            this.handleIncomingMessage(payload);
-          }
-        } catch (err) {}
-      }
-    });
+  // --- 3. ANLIK BROADCAST İLETİŞİM HESABI ---
+  getSenderId() {
+    return this.clientId;
   }
 
   broadcast(action, data) {
-    const payload = {
-      action,
-      data,
-      timestamp: Date.now(),
-      senderId: this.getSenderId(),
-      shipments: JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]'),
-      disabledDays: JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]')
-    };
-
-    // 1. Yerel Sekmeler Arası Gönder
-    if (this.broadcastChannel) {
-      try { this.broadcastChannel.postMessage(payload); } catch (e) {}
+    // 1. WebSocket Broadcast Yayınla
+    if (this.channel) {
+      this.channel.send({
+        type: 'broadcast',
+        event: 'SHIPMENT_CHANGE',
+        payload: {
+          action: action,
+          data: data,
+          sender_id: this.getSenderId(),
+          timestamp: Date.now()
+        }
+      });
     }
-    try { localStorage.setItem('sevkiyat_trigger_sync', JSON.stringify(payload)); } catch (e) {}
 
-    // 2. Supabase Kalıcı PostgreSQL Veritabanına Yaz
+    // 2. Supabase Kalıcı PostgreSQL Veritabanına Tüm Verileri Yaz
     this.pushToSupabaseDB(action, data);
 
-    // 3. Supabase Realtime Broadcast Gönder
-    if (this.realtimeChannel) {
-      try {
-        this.realtimeChannel.send({
-          type: 'broadcast',
-          event: 'sync_action',
-          payload: payload
-        });
-      } catch (e) {}
+    // 3. Yerel Tarayıcılar Arası BroadcastChannel
+    if (window.BroadcastChannel) {
+      if (!this.localBc) {
+        this.localBc = new BroadcastChannel('sevkiyat_sync_channel');
+      }
+      this.localBc.postMessage({
+        action: action,
+        data: data,
+        sender_id: this.getSenderId(),
+        timestamp: Date.now()
+      });
     }
   }
 
-  getSenderId() {
-    if (!this.senderId) {
-      this.senderId = 'client_' + Math.random().toString(36).substr(2, 9);
-    }
-    return this.senderId;
-  }
-
-  handleIncomingMessage(payload) {
-    if (!payload || payload.senderId === this.getSenderId()) return;
-
-    if (payload.shipments) {
-      localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.shipments));
-    }
-    if (payload.disabledDays) {
-      localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.disabledDays));
-    }
-
-    if (payload.action === 'ADD') {
-      this.playAlertSound('new_shipment');
-    } else if (payload.action === 'MOVE' || payload.action === 'UPDATE' || payload.action === 'DISABLE_DAY') {
-      this.playAlertSound('update_shipment');
+  handleIncomingBroadcast(payload) {
+    if (payload.action === 'ADD' && payload.data) {
+      const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
+      const exists = shipments.some(s => s.id === payload.data.id);
+      if (!exists) {
+        shipments.push(payload.data);
+        localStorage.setItem('sevkiyat_data_v1', JSON.stringify(shipments));
+        this.playAlertSound('new_shipment');
+      }
+    } else if (payload.action === 'UPDATE_REPS') {
+      this.pullFromSupabaseDB();
+    } else if (payload.action === 'MOVE') {
+      this.pullFromSupabaseDB();
     }
 
     this.triggerListeners(payload);
   }
 
-  triggerListeners(payload) {
-    this.listeners.forEach(callback => callback(payload));
+  onSync(callback) {
+    if (typeof callback === 'function') {
+      this.listeners.push(callback);
+    }
   }
 
-  onSync(callback) {
-    this.listeners.push(callback);
+  triggerListeners(payload) {
+    this.listeners.forEach(cb => {
+      try {
+        cb(payload);
+      } catch (e) {
+        console.error("Sync listener hatası:", e);
+      }
+    });
   }
 }
 

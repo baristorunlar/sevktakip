@@ -2,10 +2,14 @@
  * GÜRKAN YAPI MALZEMELERİ - KURUMSAL SEVKİYAT TAKİP YÖNETİCİSİ
  */
 
+// Kullanıcı isteği üzerine başlangıç pazarlamacı listesi boş bırakılmıştır
+const DEFAULT_REPRESENTATIVES = [];
+
 class ShipmentApp {
   constructor() {
     this.shipments = [];
-    this.disabledDays = []; // Araç serviste / sevk kapalı gün takibi [{ weekKey, dayIndex, reason }]
+    this.disabledDays = [];
+    this.representatives = [];
     this.currentWeekStart = this.getMonday(new Date());
     this.draggedShipmentId = null;
     this.searchTerm = '';
@@ -35,6 +39,7 @@ class ShipmentApp {
     this.searchInput = document.getElementById('searchInput');
     this.filterStatusSelect = document.getElementById('filterStatusSelect');
     this.newShipmentBtn = document.getElementById('newShipmentBtn');
+    this.manageRepsBtn = document.getElementById('manageRepsBtn');
     this.audioToggleBtn = document.getElementById('audioToggleBtn');
     this.testSoundBtn = document.getElementById('testSoundBtn');
 
@@ -46,6 +51,15 @@ class ShipmentApp {
 
     this.inputDaySelect = document.getElementById('inputDay');
     this.inputOrderSelect = document.getElementById('inputShipmentOrder');
+    this.inputRepSelect = document.getElementById('inputRepresentative');
+
+    // Pazarlamacı Yönetimi Modal Elemanları
+    this.repManagerModal = document.getElementById('repManagerModal');
+    this.closeRepModalBtn = document.getElementById('closeRepModalBtn');
+    this.doneRepModalBtn = document.getElementById('doneRepModalBtn');
+    this.newRepInput = document.getElementById('newRepInput');
+    this.addRepBtn = document.getElementById('addRepBtn');
+    this.repListEl = document.getElementById('repListEl');
 
     this.toastContainer = document.getElementById('toastContainer');
   }
@@ -54,13 +68,34 @@ class ShipmentApp {
   loadData() {
     const saved = localStorage.getItem('sevkiyat_data_v1');
     const savedDisabled = localStorage.getItem('sevkiyat_disabled_days_v1');
+    const savedReps = localStorage.getItem('sevkiyat_reps_v1');
     const baseWeekKey = this.getWeekKey(this.getMonday(new Date()));
+
+    if (savedReps) {
+      try {
+        const parsedReps = JSON.parse(savedReps);
+        const oldMockSample = ["Mehmet Kaya (Saha Satış)", "Ahmet Yılmaz (Mağaza)"];
+        if (parsedReps.length > 0 && oldMockSample.some(m => parsedReps.includes(m))) {
+          this.representatives = [];
+          localStorage.setItem('sevkiyat_reps_v1', JSON.stringify([]));
+        } else {
+          this.representatives = parsedReps;
+        }
+      } catch (e) {
+        this.representatives = [];
+      }
+    } else {
+      this.representatives = [];
+      localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(this.representatives));
+    }
 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         this.shipments = parsed.map(s => {
           if (!s.weekKey) s.weekKey = baseWeekKey;
+          if (!s.representative) s.representative = 'Belirtilmedi';
+          if (!s.createdAt) s.createdAt = new Date().toISOString();
           return s;
         });
       } catch (e) {
@@ -78,11 +113,14 @@ class ShipmentApp {
         this.disabledDays = [];
       }
     }
+
+    this.populateRepDropdown();
   }
 
   saveData(notifySync = false, actionType = 'UPDATE', payloadData = null) {
     localStorage.setItem('sevkiyat_data_v1', JSON.stringify(this.shipments));
     localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(this.disabledDays));
+    localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(this.representatives));
     
     if (notifySync && window.syncManager) {
       window.syncManager.broadcast(actionType, payloadData || this.shipments);
@@ -90,7 +128,24 @@ class ShipmentApp {
     this.updateMetrics();
   }
 
-  // --- HAFTA ANAHTARI (YYYY-MM-DD) ---
+  populateRepDropdown() {
+    this.inputRepSelect.innerHTML = '';
+
+    if (this.representatives.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = 'Belirtilmedi';
+      opt.textContent = '-- Pazarlamacı Eklenmedi (Yönetimden Ekleyin) --';
+      this.inputRepSelect.appendChild(opt);
+    } else {
+      this.representatives.forEach(rep => {
+        const opt = document.createElement('option');
+        opt.value = rep;
+        opt.textContent = rep;
+        this.inputRepSelect.appendChild(opt);
+      });
+    }
+  }
+
   getWeekKey(mondayDate) {
     const d = new Date(mondayDate);
     const year = d.getFullYear();
@@ -99,7 +154,17 @@ class ShipmentApp {
     return `${year}-${month}-${day}`;
   }
 
-  // --- ARAÇ SERVİSTE / SEVK DIŞI KONTROLÜ ---
+  formatDateTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      const options = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
+      return d.toLocaleDateString('tr-TR', options);
+    } catch (e) {
+      return '';
+    }
+  }
+
   isDayDisabled(dayIndex) {
     const currentWeekKey = this.getWeekKey(this.currentWeekStart);
     return this.disabledDays.some(d => d.weekKey === currentWeekKey && d.dayIndex === dayIndex);
@@ -125,7 +190,6 @@ class ShipmentApp {
     this.render();
   }
 
-  // --- 3. BENZERSİZ SEVK SIRA HESAPLAMA ---
   getNextAvailableOrder(dayIndex, excludeId = null) {
     const currentWeekKey = this.getWeekKey(this.currentWeekStart);
 
@@ -143,7 +207,6 @@ class ShipmentApp {
     return 'Ek Sevk';
   }
 
-  // --- 4. TARİH & HAFTA HESAPLAMA ---
   getMonday(d) {
     const date = new Date(d);
     const day = date.getDay();
@@ -187,7 +250,6 @@ class ShipmentApp {
     return days;
   }
 
-  // --- 5. CANLI SENKRONİZASYON ---
   initSyncEngine() {
     if (window.syncManager) {
       window.syncManager.onSync((payload) => {
@@ -200,11 +262,8 @@ class ShipmentApp {
             'Yeni Sevkiyat Eklendi',
             `${item.customerName} (${item.shipmentOrder}) sisteme eklendi.`
           );
-        } else if (payload.action === 'DISABLE_DAY') {
-          this.showToast(
-            'Gün Durumu Güncellendi',
-            `Araç serviste/sevk durumu güncellendi.`
-          );
+        } else if (payload.action === 'UPDATE_REPS') {
+          this.showToast('Pazarlamacı Listesi Güncellendi', 'Pazarlamacı/temsilci listesi canlı olarak güncellendi.');
         } else if (payload.action === 'MOVE') {
           this.showToast(
             'Sıralama Güncellendi',
@@ -215,7 +274,6 @@ class ShipmentApp {
     }
   }
 
-  // --- 6. ETKİNLİK DİNLENİCİLERİ ---
   initEventListeners() {
     this.prevWeekBtn.addEventListener('click', () => {
       this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
@@ -274,7 +332,101 @@ class ShipmentApp {
       this.handleFormSubmit();
     });
 
+    this.manageRepsBtn.addEventListener('click', () => this.openRepManagerModal());
+    this.closeRepModalBtn.addEventListener('click', () => this.closeRepManagerModal());
+    this.doneRepModalBtn.addEventListener('click', () => this.closeRepManagerModal());
+
+    this.addRepBtn.addEventListener('click', () => this.handleAddRep());
+    this.newRepInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.handleAddRep();
+      }
+    });
+
     this.updateAudioBtnUI(window.syncManager.audioEnabled);
+  }
+
+  openRepManagerModal() {
+    this.renderRepList();
+    this.repManagerModal.classList.add('active');
+  }
+
+  closeRepManagerModal() {
+    this.repManagerModal.classList.remove('active');
+    this.populateRepDropdown();
+  }
+
+  renderRepList() {
+    this.repListEl.innerHTML = '';
+    
+    if (this.representatives.length === 0) {
+      this.repListEl.innerHTML = `<li class="rep-item" style="color: #64748b; padding: 1rem; text-align: center;">Henüz pazarlamacı eklenmedi. Yukarıdaki kutudan ekleyebilirsiniz.</li>`;
+      return;
+    }
+
+    this.representatives.forEach((rep, index) => {
+      const li = document.createElement('li');
+      li.className = 'rep-item';
+      li.innerHTML = `
+        <span class="rep-item-name">👤 ${rep}</span>
+        <div class="rep-item-actions">
+          <button class="action-btn edit-rep-btn" title="Düzenle">✏️</button>
+          <button class="action-btn delete-rep-btn" title="Sil">🗑️</button>
+        </div>
+      `;
+
+      li.querySelector('.edit-rep-btn').addEventListener('click', () => {
+        const newName = prompt("Pazarlamacı / Temsilci adını düzenleyin:", rep);
+        if (newName && newName.trim() && newName.trim() !== rep) {
+          const updatedName = newName.trim();
+          this.representatives[index] = updatedName;
+
+          this.shipments.forEach(s => {
+            if (s.representative === rep) s.representative = updatedName;
+          });
+
+          this.saveData(true, 'UPDATE_REPS');
+          this.renderRepList();
+          this.populateRepDropdown();
+          this.render();
+          this.showToast('Pazarlamacı Güncellendi', `${rep} ismi "${updatedName}" olarak değiştirildi.`);
+        }
+      });
+
+      li.querySelector('.delete-rep-btn').addEventListener('click', () => {
+        if (confirm(`"${rep}" temsilcisini listeden silmek istediğinize emin misiniz?`)) {
+          this.representatives.splice(index, 1);
+          this.saveData(true, 'UPDATE_REPS');
+          this.renderRepList();
+          this.populateRepDropdown();
+          this.render();
+          this.showToast('Pazarlamacı Silindi', `${rep} listeden silindi.`);
+        }
+      });
+
+      this.repListEl.appendChild(li);
+    });
+  }
+
+  handleAddRep() {
+    const name = this.newRepInput.value.trim();
+    if (!name) {
+      alert("Lütfen pazarlamacı / temsilci adı giriniz!");
+      return;
+    }
+
+    if (this.representatives.includes(name)) {
+      alert("Bu pazarlamacı zaten listede ekli!");
+      return;
+    }
+
+    this.representatives.push(name);
+    this.saveData(true, 'UPDATE_REPS');
+    this.newRepInput.value = '';
+    this.renderRepList();
+    this.populateRepDropdown();
+    this.showToast('Pazarlamacı Eklendi', `"${name}" pazarlamacı listesine eklendi.`);
   }
 
   triggerWeekAnimation(direction = 'next') {
@@ -297,7 +449,6 @@ class ShipmentApp {
     }
   }
 
-  // --- 7. RENDER ---
   render() {
     this.renderHeaderDates();
     this.renderGridOnly();
@@ -327,7 +478,7 @@ class ShipmentApp {
         if (s.dayOfWeek !== day.dayIndex) return false;
 
         if (this.searchTerm) {
-          const matchTarget = `${s.customerName} ${s.deliveryAddress} ${s.notes}`.toLowerCase();
+          const matchTarget = `${s.customerName} ${s.representative} ${s.deliveryAddress} ${s.notes}`.toLowerCase();
           if (!matchTarget.includes(this.searchTerm)) return false;
         }
 
@@ -378,7 +529,6 @@ class ShipmentApp {
         <div class="cards-dropzone" data-day-index="${day.dayIndex}"></div>
       `;
 
-      // Sevk İptali / Araç Serviste Butonu
       colEl.querySelector('.toggle-service-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         this.toggleDayDisabled(day.dayIndex, day.name);
@@ -456,8 +606,13 @@ class ShipmentApp {
     else if (shipment.status === 'Yolda') statusText = '🚛 YOLDA';
 
     const district = this.extractDistrict(shipment.deliveryAddress);
+    const formattedCreatedDate = this.formatDateTime(shipment.createdAt);
 
     card.innerHTML = `
+      ${isNewShipment && !isCancelled && !isDelivered ? `
+        <div class="floating-new-badge-on-top">✨ YENİ SEVKİYAT</div>
+      ` : ''}
+
       <div class="card-top">
         <div class="order-handle-group" title="Sıralamayı değiştirmek için sürükleyin">
           <span class="drag-handle-icon">⋮⋮</span>
@@ -470,6 +625,13 @@ class ShipmentApp {
 
       <div class="card-customer-title" title="Müşteri / Alıcı">
         <span>${shipment.customerName || 'Alıcı Unvanı Yok'}</span>
+      </div>
+
+      <div class="card-meta-bar">
+        <span class="rep-tag" title="Pazarlamacı / Temsilci">
+          👤 ${shipment.representative || 'Belirtilmedi'}
+        </span>
+        ${formattedCreatedDate ? `<span class="created-at-tag" title="Kayıt / Ekleme Zamanı">🕒 ${formattedCreatedDate}</span>` : ''}
       </div>
 
       <div class="card-address-box" title="Teslimat Adresi">
@@ -545,6 +707,7 @@ class ShipmentApp {
       <tr>
         <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">${s.shipmentOrder || (i + 1) + '. Sevk'}</td>
         <td style="padding: 10px; border: 1px solid #ddd; font-weight: bold;">${s.customerName}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;">${s.representative || 'Belirtilmedi'}</td>
         <td style="padding: 10px; border: 1px solid #ddd;">${s.deliveryAddress}</td>
         <td style="padding: 10px; border: 1px solid #ddd;">${s.timeOfDay}</td>
         <td style="padding: 10px; border: 1px solid #ddd;">${s.status}</td>
@@ -572,6 +735,7 @@ class ShipmentApp {
             <tr>
               <th>Sıra</th>
               <th>Müşteri / Unvan</th>
+              <th>Pazarlamacı</th>
               <th>Teslimat Adresi</th>
               <th>Zaman</th>
               <th>Durum</th>
@@ -579,7 +743,7 @@ class ShipmentApp {
             </tr>
           </thead>
           <tbody>
-            ${rowsHtml || '<tr><td colspan="6" style="padding: 15px; text-align: center;">Sevkiyat Kaydı Yok</td></tr>'}
+            ${rowsHtml || '<tr><td colspan="7" style="padding: 15px; text-align: center;">Sevkiyat Kaydı Yok</td></tr>'}
           </tbody>
         </table>
         <script>
@@ -591,9 +755,14 @@ class ShipmentApp {
     printWindow.document.close();
   }
 
-  // --- 9. SÜRÜKLE BIRAK YÖNETİMİ ---
   attachDropzoneEvents(dropzone) {
+    const targetDayIndex = parseInt(dropzone.dataset.dayIndex, 10);
+
     dropzone.addEventListener('dragover', (e) => {
+      if (this.isDayDisabled(targetDayIndex)) {
+        return;
+      }
+
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       dropzone.classList.add('drag-over');
@@ -619,13 +788,13 @@ class ShipmentApp {
       e.preventDefault();
       dropzone.classList.remove('drag-over');
 
-      const targetDayIndex = parseInt(dropzone.dataset.dayIndex, 10);
       const draggedId = this.draggedShipmentId;
 
       if (!draggedId || !targetDayIndex) return;
 
       if (this.isDayDisabled(targetDayIndex)) {
-        alert("Bu gün araç serviste/sevk kapalı olarak işaretlendiği için sevkiyat taşınamaz!");
+        alert("Bu gün araç serviste/sevk kapalı olarak işaretlendiği için sevkiyat bu güne taşınamaz!");
+        this.render();
         return;
       }
 
@@ -674,14 +843,15 @@ class ShipmentApp {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 
-  // --- 10. MODAL FORMU ---
   openModal(shipment = null) {
     this.editingShipmentId = shipment ? shipment.id : null;
+    this.populateRepDropdown();
 
     if (shipment) {
       this.modalTitle.textContent = 'SEVKİYAT DÜZENLE';
       document.getElementById('inputDay').value = shipment.dayOfWeek;
       document.getElementById('inputShipmentOrder').value = shipment.shipmentOrder || '1. Sevk';
+      document.getElementById('inputRepresentative').value = shipment.representative || (this.representatives[0] || 'Belirtilmedi');
       document.getElementById('inputCustomerName').value = shipment.customerName || '';
       document.getElementById('inputAddress').value = shipment.deliveryAddress || '';
       document.getElementById('inputStatus').value = shipment.status;
@@ -695,6 +865,9 @@ class ShipmentApp {
       document.getElementById('inputDay').value = defaultDay;
       document.getElementById('inputShipmentOrder').value = this.getNextAvailableOrder(defaultDay);
       document.getElementById('inputTimeOfDay').value = 'Sabah Sevkiyatı';
+      if (this.representatives.length > 0) {
+        document.getElementById('inputRepresentative').value = this.representatives[0];
+      }
     }
 
     this.shipmentModal.classList.add('active');
@@ -709,6 +882,7 @@ class ShipmentApp {
     const dayOfWeek = parseInt(document.getElementById('inputDay').value, 10);
     const shipmentOrder = document.getElementById('inputShipmentOrder').value;
     const timeOfDay = document.getElementById('inputTimeOfDay').value;
+    const representative = document.getElementById('inputRepresentative').value || 'Belirtilmedi';
     const customerName = document.getElementById('inputCustomerName').value.trim();
     const deliveryAddress = document.getElementById('inputAddress').value.trim();
     const status = document.getElementById('inputStatus').value;
@@ -730,7 +904,7 @@ class ShipmentApp {
       if (index !== -1) {
         this.shipments[index] = {
           ...this.shipments[index],
-          customerName, deliveryAddress, shipmentOrder,
+          customerName, representative, deliveryAddress, shipmentOrder,
           dayOfWeek, status, timeOfDay, notes, weekKey: currentWeekKey
         };
         this.saveData(true, 'UPDATE', this.shipments[index]);
@@ -739,7 +913,7 @@ class ShipmentApp {
     } else {
       const newShipment = {
         id: 'SEV-' + Date.now().toString().slice(-5),
-        customerName, deliveryAddress, shipmentOrder,
+        customerName, representative, deliveryAddress, shipmentOrder,
         dayOfWeek, status, timeOfDay, notes,
         weekKey: currentWeekKey,
         isNew: true,
@@ -775,7 +949,6 @@ class ShipmentApp {
     }
   }
 
-  // --- 11. İSTATİSTİKLER ---
   updateMetrics() {
     const currentWeekKey = this.getWeekKey(this.currentWeekStart);
     const activeShipments = this.shipments.filter(s => (s.weekKey || currentWeekKey) === currentWeekKey);
@@ -791,7 +964,6 @@ class ShipmentApp {
     this.deliveredCountEl.textContent = delivered;
   }
 
-  // --- 12. TOAST BİLDİRİM ---
   showToast(title, desc) {
     const toast = document.createElement('div');
     toast.className = 'toast-item';

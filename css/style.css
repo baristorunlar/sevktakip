@@ -7,14 +7,14 @@
 :root {
   --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
-  /* Açık Tema Renkleri */
+  /* Kurumsal Renk Paleti */
   --navy-dark: #0f172a;
   --navy-header: #1e293b;
   --slate-body: #f8fafc;
   --card-bg: #ffffff;
 
   --text-main: #0f172a;
-  --text-muted: #475569;
+  --text-muted: #334155;
   --text-subtle: #64748b;
 
   --border-light: #e2e8f0;
@@ -27,11 +27,11 @@
 
   --shadow-subtle: 0 1px 3px 0 rgba(15, 23, 42, 0.06), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
   --shadow-card: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-hover: 0 10px 15px -3px rgba(15, 23, 42, 0.12), 0 4px 6px -4px rgba(15, 23, 42, 0.05);
+  --shadow-hover: 0 12px 20px -3px rgba(15, 23, 42, 0.14), 0 4px 8px -4px rgba(15, 23, 42, 0.06);
 
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
 }
 
 * {
@@ -121,17 +121,32 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.15);
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-sm);
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #22c55e;
+  letter-spacing: 0.04em;
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   background-color: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 6px #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: live-pulse-dot 1.4s infinite ease-in-out;
+}
+
+@keyframes live-pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 10px #22c55e, 0 0 18px rgba(34, 197, 94, 0.6);
+  }
+  50% {
+    opacity: 0.25;
+    transform: scale(0.75);
+    box-shadow: 0 0 2px #22c55e;
+  }
 }
 
 .header-actions {
@@ -250,7 +265,6 @@ body {
   line-height: 1;
 }
 
-/* Kontrol Paneli */
 .controls-bar {
   background: var(--card-bg);
   border: 1px solid var(--border-light);
@@ -345,7 +359,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   3. HAFTALIK TAKVİM & ARAÇ SERVİSTE / SEVK DIŞI STİLİ
+   3. HAFTALIK TAKVİM & ARAÇ SERVİSTE STİLİ
    -------------------------------------------------------------------------- */
 .calendar-wrapper {
   max-width: 1750px;
@@ -386,7 +400,7 @@ body {
   border-radius: var(--radius-md);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   transition: all 0.2s ease;
 }
 
@@ -424,7 +438,6 @@ body {
   font-weight: 700;
 }
 
-/* 🛠️ ARAÇ SERVİSTE / SEVK YAPILAMAYAN GÜN STİLİ */
 .day-column.is-out-of-service {
   border: 2px dashed #d97706 !important;
   background: #fffbeb !important;
@@ -600,8 +613,9 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem;
   min-height: 450px;
+  overflow: visible;
 }
 
 .cards-dropzone.drag-over {
@@ -621,27 +635,31 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   4. SEVKİYAT KARTLARI
+   4. KUTUCUĞUN ÜSTÜNDE MİNİMAL HASSAS VE PARLAYAN YENİ SEVKİYAT ROZETİ
    -------------------------------------------------------------------------- */
 .shipment-card {
   background: var(--card-bg);
   border: 1px solid var(--border-medium);
   border-left: 5px solid var(--navy-dark);
-  border-radius: var(--radius-sm);
-  padding: 0.8rem 0.9rem;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
   box-shadow: var(--shadow-card);
   cursor: grab;
   position: relative;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
 }
 
 .shipment-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: var(--shadow-hover);
+  border-color: var(--border-dark);
 }
 
 .shipment-card:active {
@@ -653,41 +671,51 @@ body {
   border: 2px dashed var(--accent-blue);
 }
 
-/* YENİ EKLENEN SEVKİYAT (PULSE) */
+/* ✨ YENİ KART: KUTUCUĞUN TAM ÜSTÜNDE MİNİMAL VE PARLAYAN ROZET */
 .shipment-card.is-new {
-  border: 2px solid #2563eb !important;
-  border-left: 6px solid #2563eb !important;
-  animation: pulse-new-card 1.5s infinite ease-in-out;
-  position: relative;
+  border: 2px solid #f97316 !important;
+  border-left: 6px solid #ea580c !important;
+  background: linear-gradient(180deg, #fff7ed 0%, #ffffff 100%);
+  animation: card-golden-amber-pulse 2s infinite ease-in-out;
+  margin-top: 0.5rem;
+  overflow: visible !important;
 }
 
-.shipment-card.is-new::before {
-  content: "✨ YENİ SEVKİYAT";
+@keyframes card-golden-amber-pulse {
+  0% {
+    box-shadow: 0 0 5px rgba(249, 115, 22, 0.4), 0 4px 10px rgba(0, 0, 0, 0.08);
+    border-color: #f97316;
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(249, 115, 22, 0.85), 0 0 30px rgba(245, 158, 11, 0.45);
+    border-color: #fdba74;
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(249, 115, 22, 0.4), 0 4px 10px rgba(0, 0, 0, 0.08);
+    border-color: #f97316;
+  }
+}
+
+/* MİNİMAL SEVİMLİ VE KÜÇÜK ROZET */
+.floating-new-badge-on-top {
   position: absolute;
   top: -10px;
-  right: 12px;
-  background: #2563eb;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ea580c 0%, #d97706 100%);
   color: #ffffff;
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  padding: 0.12rem 0.55rem;
+  padding: 0.12rem 0.48rem;
   border-radius: 3px;
-  letter-spacing: 0.04em;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
-  animation: pulse-new-badge 1.5s infinite ease-in-out;
+  letter-spacing: 0.03em;
+  border: 1px solid #f97316;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.35);
   z-index: 10;
-}
-
-@keyframes pulse-new-card {
-  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7), 0 4px 10px rgba(37, 99, 235, 0.2); border-color: #2563eb; background-color: #eff6ff; }
-  50% { box-shadow: 0 0 0 12px rgba(37, 99, 235, 0), 0 0 20px rgba(37, 99, 235, 0.4); border-color: #60a5fa; background-color: #ffffff; }
-  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 4px 10px rgba(37, 99, 235, 0.2); border-color: #2563eb; background-color: #eff6ff; }
-}
-
-@keyframes pulse-new-badge {
-  0% { transform: scale(1); background-color: #2563eb; }
-  50% { transform: scale(1.08); background-color: #1d4ed8; }
-  100% { transform: scale(1); background-color: #2563eb; }
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
 }
 
 /* 🟢 TESLİM EDİLDİ - YEŞİL TARALI ALAN */
@@ -695,16 +723,15 @@ body {
   background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
   border: 1.5px solid #86efac;
   border-left: 6px solid #15803d !important;
-  box-shadow: 0 4px 10px rgba(22, 101, 52, 0.12);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.12);
   position: relative;
-  overflow: hidden;
 }
 
 .shipment-card.is-delivered::after {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(45deg, rgba(22, 101, 52, 0.07), rgba(22, 101, 52, 0.07) 10px, transparent 10px, transparent 20px);
+  background: repeating-linear-gradient(45deg, rgba(22, 101, 52, 0.06), rgba(22, 101, 52, 0.06) 10px, transparent 10px, transparent 20px);
   pointer-events: none;
 }
 
@@ -716,7 +743,7 @@ body {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border: 1.5px solid #93c5fd;
   border-left: 6px solid #1d4ed8 !important;
-  box-shadow: 0 4px 10px rgba(29, 78, 216, 0.12);
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.12);
 }
 
 .shipment-card.is-preparing .order-badge { background: #1e40af; color: #ffffff; }
@@ -728,14 +755,13 @@ body {
   border-left: 6px solid #dc2626 !important;
   opacity: 0.85;
   position: relative;
-  overflow: hidden;
 }
 
 .shipment-card.is-cancelled::after {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(45deg, rgba(220, 38, 38, 0.08), rgba(220, 38, 38, 0.08) 10px, transparent 10px, transparent 20px);
+  background: repeating-linear-gradient(45deg, rgba(220, 38, 38, 0.07), rgba(220, 38, 38, 0.07) 10px, transparent 10px, transparent 20px);
   pointer-events: none;
 }
 
@@ -754,55 +780,63 @@ body {
   border-color: #fecaca;
 }
 
+/* ÜST BAR (1. SEVK SIRA ROZETİ & DURUM PILL) */
 .card-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.35rem;
   z-index: 2;
+  width: 100%;
 }
 
 .order-handle-group {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 .drag-handle-icon {
   color: #94a3b8;
   font-size: 0.85rem;
   cursor: grab;
+  flex-shrink: 0;
 }
 
 .order-badge {
   background: var(--navy-dark);
   color: #ffffff;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  padding: 0.18rem 0.55rem;
+  padding: 0.15rem 0.45rem;
   border-radius: var(--radius-sm);
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.22rem 0.65rem;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
   border-radius: var(--radius-sm);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
   z-index: 2;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-pill:hover {
   transform: scale(1.04);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .status-pill.status-beklemede { background: #854d0e; color: #ffffff; }
@@ -811,53 +845,100 @@ body {
 .status-pill.status-teslim-edildi { background: #15803d; color: #ffffff; }
 .status-pill.status-iptal { background: #b91c1c; color: #ffffff; }
 
+/* MÜŞTERİ UNVANI (TAŞMA YAPMAZ) */
 .card-customer-title {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 800;
   color: var(--text-main);
-  line-height: 1.25;
+  line-height: 1.3;
   z-index: 2;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
+/* 👤 TEMSİLCİ VE 🕒 EKLENME ZAMANI YAN YANA METABAR (TAŞMA KORUMALI) */
+.card-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  z-index: 2;
+  width: 100%;
+}
+
+.rep-tag {
+  background: #f1f5f9;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.12rem 0.45rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 55%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+}
+
+.created-at-tag {
+  font-size: 0.66rem;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* TESLİMAT ADRESİ KUTUSU (100% SIĞAR) */
 .card-address-box {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
   line-height: 1.35;
   background: #f8fafc;
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.6rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-light);
   font-weight: 500;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   z-index: 2;
+  word-break: break-word;
+  overflow: hidden;
 }
 
 .district-pill {
   display: inline-block;
   align-self: flex-start;
-  font-size: 0.68rem;
-  font-weight: 700;
+  font-size: 0.66rem;
+  font-weight: 800;
   padding: 0.1rem 0.4rem;
-  border-radius: 2px;
-  background: #e2e8f0;
-  color: #334155;
+  border-radius: 3px;
+  background: #0f172a;
+  color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .card-note-snippet {
-  font-size: 0.74rem;
-  color: #475569;
+  font-size: 0.72rem;
+  color: #78350f;
   background: #fefce8;
   border: 1px solid #fef08a;
   padding: 0.3rem 0.5rem;
   border-radius: var(--radius-sm);
-  font-weight: 500;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   z-index: 2;
+  word-break: break-word;
 }
 
+/* KART ALT BAR (ZAMAN DİLİMİ & AKSİYON BUTONLARI - YAZDIR BUTONU İLE BİREBİR KARE-OVAL BUTONLAR) */
 .card-footer {
   margin-top: 0.15rem;
   padding-top: 0.4rem;
@@ -865,30 +946,37 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem;
   z-index: 2;
+  width: 100%;
 }
 
 .time-tag {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--navy-dark);
   font-weight: 700;
   background: #f1f5f9;
-  padding: 0.15rem 0.45rem;
+  padding: 0.12rem 0.45rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
 }
 
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
+/* DÜZENLE ✏️ VE SİL 🗑️ BUTONLARI YAZDIR 🖨️ BUTONU İLE BİREBİR AYNI KARE VE KENARLIKLI STİLDE */
 .action-btn {
   background: transparent;
-  border: none;
-  color: var(--text-subtle);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
   width: 24px;
   height: 24px;
   border-radius: var(--radius-sm);
@@ -896,21 +984,89 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
+  transition: all 0.15s ease;
 }
 
 .action-btn:hover {
-  background: #f1f5f9;
+  background: var(--slate-body);
   color: var(--text-main);
+  border-color: var(--border-dark);
 }
 
 .action-btn.delete-btn:hover {
   background: #fee2e2;
   color: #dc2626;
+  border-color: #fca5a5;
 }
 
 /* --------------------------------------------------------------------------
-   5. MODAL FORM BİLEŞENLERİ
+   5. PAZARLAMACI / TEMSİLCİ YÖNETİMİ MODAL STİLLERİ
+   -------------------------------------------------------------------------- */
+.add-rep-bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.add-rep-bar input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.add-rep-bar input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.rep-list-container {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.rep-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rep-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--border-light);
+  background: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.rep-item:last-child {
+  border-bottom: none;
+}
+
+.rep-item-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.rep-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* --------------------------------------------------------------------------
+   6. MODAL FORM BİLEŞENLERİ
    -------------------------------------------------------------------------- */
 .modal-overlay {
   position: fixed;
@@ -965,7 +1121,7 @@ body {
 }
 
 /* --------------------------------------------------------------------------
-   6. ANLIK TOAST BİLDİRİM
+   7. ANLIK TOAST BİLDİRİM
    -------------------------------------------------------------------------- */
 .toast-container {
   position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 2000;
@@ -984,7 +1140,7 @@ body {
 .toast-content .desc { font-size: 0.75rem; color: #94a3b8; }
 
 /* --------------------------------------------------------------------------
-   7. RESPONSIVE & PRINT DÜZENİ
+   8. RESPONSIVE & PRINT DÜZENİ
    -------------------------------------------------------------------------- */
 @media (max-width: 1400px) { .weekly-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 900px) {
