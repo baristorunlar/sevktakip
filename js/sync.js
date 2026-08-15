@@ -212,50 +212,136 @@ class SyncManager {
       const now = this.audioContext.currentTime;
 
       if (type === 'new_shipment') {
-        // ✨ YENİ SEVKİYAT SİNYALİ: 3 Aşamalı Kristal Çan Melodisi (F5 -> A5 -> C6)
-        const notes = [698.46, 880.00, 1046.50];
-        notes.forEach((freq, index) => {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
+        // 🎼 PREMİUM LÜKS KRİSTAL ÇAN AKORU (C5 -> E5 -> G5 -> C6)
+        // Her notaya sıcak akustik gövde (Sine + Warm Lowpass Filter) + İpeksi Rezonans eklenir
+        const chordNotes = [523.25, 659.25, 783.99, 1046.50]; // C Major Arpeggio Chime
+        
+        chordNotes.forEach((freq, index) => {
+          const startTime = now + (index * 0.08);
+          
+          // Ana Osilatör (Sıcak Sinüs Dalgası)
+          const osc1 = this.audioContext.createOscillator();
+          // Yan Harmonik Osilatör (Zengin Akustik Tınlama)
+          const osc2 = this.audioContext.createOscillator();
+          const gainNode = this.audioContext.createGain();
+          const filterNode = this.audioContext.createBiquadFilter();
 
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, now + index * 0.1);
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(freq, startTime);
 
-          gain.gain.setValueAtTime(0.001, now + index * 0.1);
-          gain.gain.exponentialRampToValueAtTime(0.25, now + index * 0.1 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.1 + 0.6);
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(freq * 2, startTime); // 1 Oktav Üst Harmonik
 
-          osc.connect(gain);
-          gain.connect(this.audioContext.destination);
+          filterNode.type = 'lowpass';
+          filterNode.frequency.setValueAtTime(3200, startTime);
 
-          osc.start(now + index * 0.1);
-          osc.stop(now + index * 0.1 + 0.65);
+          // Pürüzsüz Saldırı (Attack) ve İpeksi Sönümlenme (Decay)
+          gainNode.gain.setValueAtTime(0.0001, startTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.28, startTime + 0.015);
+          gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.85);
+
+          osc1.connect(filterNode);
+          osc2.connect(filterNode);
+          filterNode.connect(gainNode);
+          gainNode.connect(this.audioContext.destination);
+
+          osc1.start(startTime);
+          osc2.start(startTime);
+          osc1.stop(startTime + 0.9);
+          osc2.stop(startTime + 0.9);
         });
+
       } else if (type === 'update_shipment') {
-        // 🔄 DURUM GÜNCELLEME: Yumuşak Marimba Pop Sesi
+        // 🎯 LÜKS HAPTİK DOKUNMATİK TIKLAMASI (D5 -> A5 Akustik Damla)
+        const startTime = now;
         const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
+        const filter = this.audioContext.createBiquadFilter();
 
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(523.25, now);
-        osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, startTime); // D5
+        osc.frequency.exponentialRampToValueAtTime(880.00, startTime + 0.06); // A5
 
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2400, startTime);
 
-        osc.connect(gain);
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.22, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
+
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(this.audioContext.destination);
 
-        osc.start(now);
-        osc.stop(now + 0.28);
+        osc.start(startTime);
+        osc.stop(startTime + 0.25);
       }
     } catch (e) {
       console.warn("Ses çalma hatası:", e);
     }
   }
 
-  testSound() {
+  getAppleFemaleVoice() {
+    if (!('speechSynthesis' in window)) return null;
+    const voices = window.speechSynthesis.getVoices();
+
+    if (!voices || voices.length === 0) return null;
+
+    // 1. Apple Safari / Mac / iOS "Yelda" veya "Siri" Türkçe Kadın Sesi
+    let targetVoice = voices.find(v => 
+      (v.lang.startsWith('tr') || v.lang.includes('TR')) && 
+      (v.name.includes('Yelda') || v.name.includes('Siri') || v.name.includes('Apple'))
+    );
+
+    // 2. Windows / Chrome Doğal Türkçe Kadın Sesi (Emel, Google Türkçe Kadın)
+    if (!targetVoice) {
+      targetVoice = voices.find(v => 
+        (v.lang.startsWith('tr') || v.lang.includes('TR')) && 
+        (v.name.includes('Emel') || v.name.includes('Google') || v.name.includes('Female'))
+      );
+    }
+
+    // 3. Varsayılan Türkçe Ses
+    if (!targetVoice) {
+      targetVoice = voices.find(v => v.lang.startsWith('tr') || v.lang.includes('TR'));
+    }
+
+    return targetVoice;
+  }
+
+  speakCustomerName(customerName) {
+    if (!this.audioEnabled || !('speechSynthesis' in window)) return;
+    if (!customerName) return;
+
+    try {
+      window.speechSynthesis.cancel();
+
+      const textToRead = `Yeni sevkiyat eklendi: ${customerName}`;
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 0.98;
+      utterance.pitch = 1.08; // Apple Siri Kadın Ses Tınısı
+
+      const femaleVoice = this.getAppleFemaleVoice();
+      if (femaleVoice) {
+        utterance.voice = femaleVoice;
+      }
+
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn("Seslendirme okuma hatası:", e);
+    }
+  }
+
+  announceNewShipment(customerName) {
     this.playAlertSound('new_shipment');
+    setTimeout(() => {
+      this.speakCustomerName(customerName);
+    }, 450);
+  }
+
+  testSound() {
+    this.announceNewShipment('Yılmaz İnşaat Anonim Şirketi');
   }
 
   // --- 3. ANLIK BROADCAST İLETİŞİM HESABI ---
@@ -302,7 +388,7 @@ class SyncManager {
       if (!exists) {
         shipments.push(payload.data);
         localStorage.setItem('sevkiyat_data_v1', JSON.stringify(shipments));
-        this.playAlertSound('new_shipment');
+        this.announceNewShipment(payload.data.customerName);
       }
     } else if (payload.action === 'UPDATE_REPS') {
       this.pullFromSupabaseDB();

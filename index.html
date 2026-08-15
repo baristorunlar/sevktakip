@@ -153,19 +153,21 @@
               <input type="text" id="inputCustomerName" placeholder="Örn: Yılmaz İnşaat A.Ş." required>
             </div>
 
-            <div class="form-group">
-              <label for="inputRepresentative">Müşteri Temsilcisi / Pazarlamacı</label>
-              <select id="inputRepresentative" required>
-                <!-- JS Dinamik Pazarlamacı Listesi Dolduracak -->
-              </select>
-            </div>
-
+            <!-- YER DEĞİŞTİRİLDİ: 1. SEVKİYAT ZAMAN DİLİMİ -->
             <div class="form-group">
               <label for="inputTimeOfDay">Sevkiyat Zaman Dilimi</label>
               <select id="inputTimeOfDay">
                 <option value="Sabah Sevkiyatı">Sabah Sevkiyatı (08:00 - 12:00)</option>
                 <option value="Öğleden Sonra Sevkiyatı">Öğleden Sonra (13:00 - 17:00)</option>
                 <option value="Gün Boyu / Esnek">Gün Boyu / Esnek</option>
+              </select>
+            </div>
+
+            <!-- YER DEĞİŞTİRİLDİ: 2. MÜŞTERİ TEMSİLCİSİ / PAZARLAMACI -->
+            <div class="form-group">
+              <label for="inputRepresentative">Müşteri Temsilcisi / Pazarlamacı</label>
+              <select id="inputRepresentative" required>
+                <!-- JS Dinamik Pazarlamacı Listesi Dolduracak -->
               </select>
             </div>
 

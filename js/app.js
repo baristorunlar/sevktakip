@@ -924,7 +924,7 @@ class ShipmentApp {
       this.saveData(true, 'ADD', newShipment);
       
       if (window.syncManager) {
-        window.syncManager.playAlertSound('new_shipment');
+        window.syncManager.announceNewShipment(customerName);
       }
 
       this.showToast(
