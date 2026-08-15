@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gürkan Yapı Malzemeleri - Kurumsal Sevkiyat Takip Sistemi</title>
+  <meta name="description" content="Gürkan Yapı Malzemeleri haftalık sevkiyat ve lojistik yönetim portalı.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- 1. KURUMSAL HEADER -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-logo-wrapper">
+          <img src="images/logo.png" alt="Gürkan Yapı Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-titles">
+          <h1>GÜRKAN YAPI MALZEMELERİ</h1>
+          <p>Haftalık Sevkiyat & Lojistik Planlama Portalı</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="sync-badge" title="Canlı senkronizasyon aktif">
+          <span class="pulse-dot"></span>
+          <span>Canlı Senkronize</span>
+        </div>
+
+        <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli ikaz durumunu değiştir">
+          Sesli İkaz Açık
+        </button>
+
+        <button id="testSoundBtn" class="btn-secondary" title="İkaz sesini test et">
+          Ses Testi
+        </button>
+
+        <button id="newShipmentBtn" class="btn-primary">
+          + Sevkiyat Girişi
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. KURUMSAL KONTROL VE İSTATİSTİK PANERİ -->
+  <div class="dashboard-bar">
+    <!-- KPI Kartları -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-info">
+          <div class="lbl">Toplam Planlanan</div>
+          <div id="totalCount" class="val">0</div>
+        </div>
+      </div>
+      <div class="metric-card status-pending">
+        <div class="metric-info">
+          <div class="lbl">Bekleyen Sevkiyatlar</div>
+          <div id="pendingCount" class="val">0</div>
+        </div>
+      </div>
+      <div class="metric-card status-transit">
+        <div class="metric-info">
+          <div class="lbl">Yoldaki Sevkiyatlar</div>
+          <div id="transitCount" class="val">0</div>
+        </div>
+      </div>
+      <div class="metric-card status-delivered">
+        <div class="metric-info">
+          <div class="lbl">Tamamlanan Sevkiyatlar</div>
+          <div id="deliveredCount" class="val">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hafta Seçici & Arama -->
+    <div class="controls-bar">
+      <div class="week-navigator">
+        <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◀</button>
+        <div id="weekTitle" class="week-title">17 Ağustos - 22 Ağustos 2026</div>
+        <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">▶</button>
+        <button id="todayWeekBtn" class="btn-secondary" style="padding: 0.3rem 0.65rem; font-size: 0.78rem;">Bu Hafta</button>
+      </div>
+
+      <div class="search-filter-group">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Müşteri adı, mahalle, ilçe veya adres ara...">
+        </div>
+
+        <select id="filterStatusSelect" class="filter-select">
+          <option value="ALL">Tüm Durumlar</option>
+          <option value="Beklemede">Beklemede</option>
+          <option value="Hazırlanıyor">Hazırlanıyor</option>
+          <option value="Yolda">Yolda</option>
+          <option value="Teslim Edildi">Teslim Edildi</option>
+          <option value="İptal">İptal</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. HAFTALIK SEVKİYAT TAKVİMİ (6 KOLON: PAZARTESİ - CUMARTESİ) -->
+  <main class="calendar-wrapper">
+    <div id="weeklyGrid" class="weekly-grid">
+      <!-- Sütunlar JavaScript ile dinamik render edilecektir -->
+    </div>
+  </main>
+
+  <!-- 4. YENİ / DÜZENLE MODAL FORMU -->
+  <div id="shipmentModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalTitle">SEVKİYAT GİRİŞİ</h2>
+        <button id="closeModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+
+      <form id="shipmentForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputDay">Sevkiyat Günü *</label>
+              <select id="inputDay" required>
+                <option value="1">Pazartesi</option>
+                <option value="2">Salı</option>
+                <option value="3">Çarşamba</option>
+                <option value="4">Perşembe</option>
+                <option value="5">Cuma</option>
+                <option value="6">Cumartesi</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputShipmentOrder">Sevkiyat Sırası *</label>
+              <select id="inputShipmentOrder" required>
+                <option value="1. Sevk">1. Sevk</option>
+                <option value="2. Sevk">2. Sevk</option>
+                <option value="3. Sevk">3. Sevk</option>
+                <option value="4. Sevk">4. Sevk</option>
+                <option value="Ek Sevk">Ek Sevk</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputTimeOfDay">Zaman Dilimi *</label>
+              <select id="inputTimeOfDay" required>
+                <option value="Sabah Sevkiyatı">Sabah Sevkiyatı</option>
+                <option value="Öğleden Sonra Sevkiyatı">Öğleden Sonra Sevkiyatı</option>
+                <option value="Gün Boyu / Esnek">Gün Boyu / Esnek</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputCustomerName">Müşteri / Alıcı Unvanı *</label>
+              <input type="text" id="inputCustomerName" required placeholder="Örn: Kadıköy Şantiyesi - Hakan Bey veya Ahmet Yılmaz">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputAddress">Teslimat Adresi (Mahalle, İlçe, İl) *</label>
+              <input type="text" id="inputAddress" required placeholder="Örn: Caferağa Mah. Moda Cad. No:45 Kadıköy / İstanbul">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputStatus">Sevkiyat Durumu *</label>
+              <select id="inputStatus" required>
+                <option value="Beklemede">Beklemede</option>
+                <option value="Hazırlanıyor">Hazırlanıyor</option>
+                <option value="Yolda">Yolda</option>
+                <option value="Teslim Edildi">Teslim Edildi</option>
+                <option value="İptal">İptal</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputNotes">Sevkiyat Notları / Açıklama</label>
+              <textarea id="inputNotes" rows="2" placeholder="Özel talimatlar veya notlar..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="cancelModalBtn" class="btn-secondary">İptal</button>
+          <button type="submit" class="btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="js/supabase-config.js"></script>
+  <script src="js/mockData.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
