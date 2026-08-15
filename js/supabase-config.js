@@ -1,11 +1,8 @@
 /**
  * GÜRKAN YAPI MALZEMELERİ - SUPABASE CANLI VERİTABANI AYARLARI
- * 
- * Supabase (https://supabase.com) hesabınızdan alacağınız URL ve ANON KEY bilgilerini
- * aşağıdaki alanlara yapıştırarak 0ms canlı senkronizasyonu aktif edebilirsiniz.
  */
 
 window.SUPABASE_CONFIG = {
-  url: "https://YOUR_SUPABASE_PROJECT_ID.supabase.co",
-  anonKey: "YOUR_SUPABASE_ANON_KEY"
+  url: "https://tqejfrnmubpdtxwkbity.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZWpmcm5tdWJwZHR4d2tiaXR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4MTE3NjQsImV4cCI6MjEwMjM4Nzc2NH0.NvaJev1e2BW3o-o7FM3P6EyHouG5cdGIU-xSTNjrPTk"
 };
