@@ -1,6 +1,5 @@
 /**
- * GÜRKAN YAPI MALZEMELERİ - SUPABASE REALTIME CANLI SENKRONİZASYON MOTORU
- * (Supabase Realtime WebSockets + LocalStorage + BroadcastChannel Hibrit Mimarisi)
+ * GÜRKAN YAPI MALZEMELERİ - SUPABASE KALICI VERİTABANI & CANLI SENKRONİZASYON MOTORU
  */
 
 class SyncManager {
@@ -20,7 +19,7 @@ class SyncManager {
     this.initSupabase();
   }
 
-  // --- 1. SUPABASE REALTIME CANLI VERİTABANI BAĞLANTISI ---
+  // --- 1. SUPABASE KALICI VERİTABANI BAĞLANTISI ---
   initSupabase() {
     const savedConfig = localStorage.getItem('sevkiyat_supabase_config');
     let config = null;
@@ -50,36 +49,108 @@ class SyncManager {
       this.setupSupabaseListeners(config);
     };
     script.onerror = () => {
-      console.warn("Supabase SDK yüklenemedi, yerel senkronizasyon aktif.");
+      console.warn("Supabase SDK yüklenemedi.");
     };
     document.head.appendChild(script);
   }
 
-  setupSupabaseListeners(config) {
+  async setupSupabaseListeners(config) {
     try {
       if (!window.supabase || !window.supabase.createClient) return;
 
       this.supabase = window.supabase.createClient(config.url, config.anonKey);
-      
-      // Supabase Realtime WebSocket Kanalı Oluştur
-      this.realtimeChannel = this.supabase.channel('sevkiyat-live-sync');
+      this.isCloudConnected = true;
+      this.updateCloudStatusUI(true);
 
+      // A) Başlangıçta Tüm Verileri Doğrudan Supabase Veritabanından Çek
+      await this.pullFromSupabaseDB();
+
+      // B) Supabase Database Tablo Değişikliklerini Canlı Dinle (Postgres Changes)
+      this.supabase
+        .channel('db-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'shipments_data' },
+          (payload) => {
+            if (payload && payload.new) {
+              const newRec = payload.new;
+              if (newRec.sender_id !== this.getSenderId()) {
+                if (newRec.shipments) {
+                  localStorage.setItem('sevkiyat_data_v1', JSON.stringify(newRec.shipments));
+                }
+                if (newRec.disabled_days) {
+                  localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(newRec.disabled_days));
+                }
+                this.handleIncomingMessage({
+                  action: newRec.last_action || 'UPDATE',
+                  senderId: newRec.sender_id
+                });
+              }
+            }
+          }
+        )
+        .subscribe();
+
+      // C) Realtime WebSocket Broadcast Kanalı
+      this.realtimeChannel = this.supabase.channel('sevkiyat-live-sync');
       this.realtimeChannel.on('broadcast', { event: 'sync_action' }, (event) => {
         if (event && event.payload) {
           this.handleIncomingMessage(event.payload);
         }
       });
-
-      this.realtimeChannel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          this.isCloudConnected = true;
-          console.log("⚡ Supabase Realtime Canlı Yayın Bağlantısı Aktif!");
-          this.updateCloudStatusUI(true);
-        }
-      });
+      this.realtimeChannel.subscribe();
 
     } catch (err) {
       console.warn("Supabase bağlantı hatası:", err);
+    }
+  }
+
+  // SUPABASE VERİTABANINDAN VERİ ÇEKME (Çerezler silinse bile buradan gelir)
+  async pullFromSupabaseDB() {
+    if (!this.supabase) return;
+
+    try {
+      const { data, error } = await this.supabase
+        .from('shipments_data')
+        .select('*')
+        .eq('id', 'global_state')
+        .single();
+
+      if (data && !error) {
+        if (data.shipments) {
+          localStorage.setItem('sevkiyat_data_v1', JSON.stringify(data.shipments));
+        }
+        if (data.disabled_days) {
+          localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(data.disabled_days));
+        }
+        this.triggerListeners({ action: 'RELOAD_FROM_DB' });
+      }
+    } catch (e) {
+      console.warn("Supabase DB okuma hatası:", e);
+    }
+  }
+
+  // SUPABASE VERİTABANINA PERMANENT YAZMA (Kalıcı Kayıt)
+  async pushToSupabaseDB(action, dataPayload) {
+    if (!this.supabase) return;
+
+    try {
+      const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
+      const disabledDays = JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]');
+
+      await this.supabase
+        .from('shipments_data')
+        .upsert({
+          id: 'global_state',
+          shipments: shipments,
+          disabled_days: disabledDays,
+          last_action: action,
+          sender_id: this.getSenderId(),
+          updated_at: new Date().toISOString()
+        });
+
+    } catch (e) {
+      console.warn("Supabase DB kalıcı yazma hatası:", e);
     }
   }
 
@@ -87,7 +158,7 @@ class SyncManager {
     const syncBadge = document.querySelector('.sync-badge');
     if (syncBadge) {
       if (isConnected) {
-        syncBadge.innerHTML = `<span class="pulse-dot" style="background:#22c55e;"></span><span>Supabase Realtime Canlı</span>`;
+        syncBadge.innerHTML = `<span class="pulse-dot" style="background:#22c55e;"></span><span>Supabase Veritabanı Kalıcı Bağlı</span>`;
       }
     }
   }
@@ -250,13 +321,16 @@ class SyncManager {
       disabledDays: JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]')
     };
 
-    // 1. Yerel Sekmeler Arası Gönder (Local Broadcast)
+    // 1. Yerel Sekmeler Arası Gönder
     if (this.broadcastChannel) {
       try { this.broadcastChannel.postMessage(payload); } catch (e) {}
     }
     try { localStorage.setItem('sevkiyat_trigger_sync', JSON.stringify(payload)); } catch (e) {}
 
-    // 2. Supabase Realtime WebSocket Üzerinden Tüm Dünyaya Canlı Yayınla (Instant Push)
+    // 2. Supabase Kalıcı PostgreSQL Veritabanına Yaz
+    this.pushToSupabaseDB(action, data);
+
+    // 3. Supabase Realtime Broadcast Gönder
     if (this.realtimeChannel) {
       try {
         this.realtimeChannel.send({
@@ -264,9 +338,7 @@ class SyncManager {
           event: 'sync_action',
           payload: payload
         });
-      } catch (e) {
-        console.warn("Supabase yayınlama hatası:", e);
-      }
+      } catch (e) {}
     }
   }
 
