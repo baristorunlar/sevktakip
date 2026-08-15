@@ -1,5 +1,5 @@
 /**
- * GÜRKAN YAPI MALZEMELERİ - ANLIK CANLI VERİTABANI & SES MOTORU (SYNC MANAGER)
+ * GÜRKAN YAPI MALZEMELERİ - ANLIK CANLI VERİTABANI & DÜNYANIN EN POPÜLER 1 NUMARALI KADIN SES MOTORU
  */
 
 class SyncManager {
@@ -101,7 +101,7 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (Pazarlamacılar, Sevkiyatlar, Kapalı Günler, Kayıt Tarihleri)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK
   async pullFromSupabaseDB() {
     if (!this.supabase) return;
 
@@ -129,7 +129,7 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINA PERMANENT YAZMA (Kalıcı PostgreSQL Kaydı)
+  // SUPABASE VERİTABANINA PERMANENT YAZMA
   async pushToSupabaseDB(action, dataPayload) {
     if (!this.supabase) return;
 
@@ -166,11 +166,17 @@ class SyncManager {
     }
   }
 
-  // --- 2. AKUSTİK MÜKEMMEL SES MOTORU ---
+  // --- 2. DÜNYANIN EN ÇOK KULLANILAN KADIN YAPAY ZEKA SES MOTORU ---
   initAudio() {
     const savedAudio = localStorage.getItem('sevkiyat_audio_enabled');
     if (savedAudio !== null) {
       this.audioEnabled = savedAudio === 'true';
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
     }
 
     const unlockAudio = () => {
@@ -212,16 +218,13 @@ class SyncManager {
       const now = this.audioContext.currentTime;
 
       if (type === 'new_shipment') {
-        // 🎼 PREMİUM LÜKS KRİSTAL ÇAN AKORU (C5 -> E5 -> G5 -> C6)
-        // Her notaya sıcak akustik gövde (Sine + Warm Lowpass Filter) + İpeksi Rezonans eklenir
-        const chordNotes = [523.25, 659.25, 783.99, 1046.50]; // C Major Arpeggio Chime
+        // 🎼 PREMİUM GONG SİNYALİ (C5 -> E5 -> G5 -> C6 LÜKS ÇAN AKORU)
+        const chordNotes = [523.25, 659.25, 783.99, 1046.50];
         
         chordNotes.forEach((freq, index) => {
           const startTime = now + (index * 0.08);
           
-          // Ana Osilatör (Sıcak Sinüs Dalgası)
           const osc1 = this.audioContext.createOscillator();
-          // Yan Harmonik Osilatör (Zengin Akustik Tınlama)
           const osc2 = this.audioContext.createOscillator();
           const gainNode = this.audioContext.createGain();
           const filterNode = this.audioContext.createBiquadFilter();
@@ -230,12 +233,11 @@ class SyncManager {
           osc1.frequency.setValueAtTime(freq, startTime);
 
           osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(freq * 2, startTime); // 1 Oktav Üst Harmonik
+          osc2.frequency.setValueAtTime(freq * 2, startTime);
 
           filterNode.type = 'lowpass';
           filterNode.frequency.setValueAtTime(3200, startTime);
 
-          // Pürüzsüz Saldırı (Attack) ve İpeksi Sönümlenme (Decay)
           gainNode.gain.setValueAtTime(0.0001, startTime);
           gainNode.gain.exponentialRampToValueAtTime(0.28, startTime + 0.015);
           gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.85);
@@ -252,15 +254,15 @@ class SyncManager {
         });
 
       } else if (type === 'update_shipment') {
-        // 🎯 LÜKS HAPTİK DOKUNMATİK TIKLAMASI (D5 -> A5 Akustik Damla)
+        // 🎯 LÜKS DOKUNMATİK TIKLAMA SİNYALİ
         const startTime = now;
         const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
         const filter = this.audioContext.createBiquadFilter();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, startTime); // D5
-        osc.frequency.exponentialRampToValueAtTime(880.00, startTime + 0.06); // A5
+        osc.frequency.setValueAtTime(587.33, startTime);
+        osc.frequency.exponentialRampToValueAtTime(880.00, startTime + 0.06);
 
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(2400, startTime);
@@ -281,55 +283,67 @@ class SyncManager {
     }
   }
 
-  getAppleFemaleVoice() {
+  getGlobalFemaleVoice() {
     if (!('speechSynthesis' in window)) return null;
     const voices = window.speechSynthesis.getVoices();
 
     if (!voices || voices.length === 0) return null;
 
-    // 1. Apple Safari / Mac / iOS "Yelda" veya "Siri" Türkçe Kadın Sesi
+    // Dünyanın En Çok Kullanılan Türkçe Kadın Sesleri Öncelik Sıralaması
     let targetVoice = voices.find(v => 
       (v.lang.startsWith('tr') || v.lang.includes('TR')) && 
-      (v.name.includes('Yelda') || v.name.includes('Siri') || v.name.includes('Apple'))
+      (v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Yelda') || v.name.includes('Siri') || v.name.includes('Emel'))
     );
 
-    // 2. Windows / Chrome Doğal Türkçe Kadın Sesi (Emel, Google Türkçe Kadın)
     if (!targetVoice) {
-      targetVoice = voices.find(v => 
-        (v.lang.startsWith('tr') || v.lang.includes('TR')) && 
-        (v.name.includes('Emel') || v.name.includes('Google') || v.name.includes('Female'))
-      );
-    }
-
-    // 3. Varsayılan Türkçe Ses
-    if (!targetVoice) {
-      targetVoice = voices.find(v => v.lang.startsWith('tr') || v.lang.includes('TR'));
+      targetVoice = voices.find(v => (v.lang.startsWith('tr') || v.lang.includes('TR')));
     }
 
     return targetVoice;
   }
 
-  speakCustomerName(customerName) {
-    if (!this.audioEnabled || !('speechSynthesis' in window)) return;
-    if (!customerName) return;
-
+  speakCustomerNameNative(textToRead) {
+    if (!('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.cancel();
-
-      const textToRead = `Yeni sevkiyat eklendi: ${customerName}`;
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = 'tr-TR';
-      utterance.rate = 0.98;
-      utterance.pitch = 1.08; // Apple Siri Kadın Ses Tınısı
+      utterance.rate = 1.10; // Hızlı ve dinamik anons temposu
+      utterance.pitch = 1.05;
 
-      const femaleVoice = this.getAppleFemaleVoice();
+      const femaleVoice = this.getGlobalFemaleVoice();
       if (femaleVoice) {
         utterance.voice = femaleVoice;
       }
 
       window.speechSynthesis.speak(utterance);
     } catch (e) {
-      console.warn("Seslendirme okuma hatası:", e);
+      console.warn("Yerel seslendirme hatası:", e);
+    }
+  }
+
+  speakCustomerName(customerName) {
+    if (!this.audioEnabled) return;
+    if (!customerName) return;
+
+    const textToRead = `Yeni sevkiyat eklendi: ${customerName}`;
+
+    try {
+      // 🌟 DÜNYANIN EN ÇOK DİNLENEN VE KULLANILAN KADIN YAPAY ZEKA SESİ (Hızlı ve Dinamik Anons Temposu)
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToRead)}&tl=tr&client=tw-ob`;
+      const ttsAudio = new Audio(audioUrl);
+      ttsAudio.volume = 1.0;
+      ttsAudio.playbackRate = 1.10; // Seri ve hızlı anons temposu
+
+      const playPromise = ttsAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Küresel HD ses akışı engellendi, yerel kadın sesine düşülüyor:", err);
+          this.speakCustomerNameNative(textToRead);
+        });
+      }
+    } catch (e) {
+      this.speakCustomerNameNative(textToRead);
     }
   }
 
@@ -337,11 +351,11 @@ class SyncManager {
     this.playAlertSound('new_shipment');
     setTimeout(() => {
       this.speakCustomerName(customerName);
-    }, 450);
+    }, 550);
   }
 
   testSound() {
-    this.announceNewShipment('Yılmaz İnşaat Anonim Şirketi');
+    this.announceNewShipment('Gürkan Ticaret');
   }
 
   // --- 3. ANLIK BROADCAST İLETİŞİM HESABI ---
