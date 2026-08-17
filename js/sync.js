@@ -1,21 +1,44 @@
 /**
- * GÜRKAN YAPI MALZEMELERİ - ANLIK CANLI VERİTABANI & DÜNYANIN EN POPÜLER 1 NUMARALI KADIN SES MOTORU
+ * GÜRKAN YAPI MALZEMELERİ - ANLIK VE KESİNTİSİZ ÇİFT KATMANLI VERİTABANI SENKRONİZASYON MOTORU
+ * (Supabase Realtime WebSocket + Kalıcı PostgreSQL + Same-Tab Storage Event + Auto-Reconnect Polling)
  */
 
 class SyncManager {
   constructor() {
     this.listeners = [];
-    this.audioContext = null;
     this.audioEnabled = true;
-    this.clientId = 'CLIENT_' + Math.random().toString(36).substring(2, 9);
+    this.clientId = 'CLIENT_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now();
     this.channel = null;
     this.supabase = null;
+    this.pollingInterval = null;
 
     this.initAudio();
     this.initSupabase();
+    this.initSameBrowserSync();
   }
 
-  // --- 1. SUPABASE REALTIME & PERMANENT POSTGRESQL ENGINE ---
+  // --- 1. SAME BROWSER TAB REALTIME SYNC (Aynı Tarayıcıkmı Sekmeler Arası Anlık Akış) ---
+  initSameBrowserSync() {
+    window.addEventListener('storage', (e) => {
+      if (
+        e.key === 'sevkiyat_data_v1' ||
+        e.key === 'sevkiyat_notes_v1' ||
+        e.key === 'sevkiyat_disabled_days_v1' ||
+        e.key === 'sevkiyat_reps_v1'
+      ) {
+        this.triggerListeners({ action: 'LOCAL_TAB_SYNC' });
+      }
+    });
+
+    // Sekme/Ekran Görünür Olduğunda Otomatik Canlı Veri Çek
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.pullFromSupabaseDB();
+      }
+    });
+  }
+
+  // --- 2. SUPABASE REALTIME & PERMANENT POSTGRESQL ENGINE ---
   initSupabase() {
     if (typeof window.SUPABASE_CONFIG === 'undefined') {
       console.warn("Supabase yapılandırma dosyası (supabase-config.js) bulunamadı.");
@@ -43,8 +66,13 @@ class SyncManager {
 
   async loadSupabaseSDK(config) {
     try {
-      this.supabase = window.supabase.createClient(config.url, config.anonKey);
+      this.supabase = window.supabase.createClient(config.url, config.anonKey, {
+        auth: { persistSession: false },
+        realtime: { heartbeatIntervalMs: 2500 }
+      });
+
       await this.setupSupabaseListeners(config);
+      this.startFallbackPolling();
       this.updateCloudStatusUI(true);
     } catch (err) {
       console.warn("Supabase başlatma hatası:", err);
@@ -57,8 +85,12 @@ class SyncManager {
       // A) Başlangıçta Tüm Verileri Doğrudan Supabase Veritabanından Çek (Kalıcı PostgreSQL)
       await this.pullFromSupabaseDB();
 
-      // B) Supabase Realtime WebSocket Kanalını Başlat (Değişiklikleri Anlık Yayınla)
-      this.channel = this.supabase.channel('public:shipments_data');
+      // B) Supabase Realtime WebSocket Kanalını Başlat (Değişiklikleri Anlık 0-50ms Yayınla)
+      this.channel = this.supabase.channel('public:shipments_data', {
+        config: {
+          broadcast: { self: false }
+        }
+      });
 
       this.channel
         .on('broadcast', { event: 'SHIPMENT_CHANGE' }, (payload) => {
@@ -69,10 +101,12 @@ class SyncManager {
         .subscribe((status) => {
           if (status === 'SUBSCRIBED') {
             this.updateCloudStatusUI(true);
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            this.updateCloudStatusUI(false);
           }
         });
 
-      // C) Supabase Database Tablo Değişikliklerini Canlı Dinle (Postgres Changes)
+      // C) Supabase Database Tablo Değişikliklerini Canlı Dinle (Postgres Changes CDC)
       this.supabase
         .channel('schema-db-changes')
         .on(
@@ -104,8 +138,16 @@ class SyncManager {
     }
   }
 
+  // 10 SANİYEDE BİR SESSİZ ARKA PLAN VERİ VERİTABANI POLINGİ (AĞ KOPMALARINA KARŞI KESİNTİSİZ KORUMA)
+  startFallbackPolling() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.pollingInterval = setInterval(() => {
+      this.pullFromSupabaseDB(true);
+    }, 10000);
+  }
+
   // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK
-  async pullFromSupabaseDB() {
+  async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
 
     try {
@@ -116,19 +158,44 @@ class SyncManager {
         .single();
 
       if (data && !error) {
+        let hasChanges = false;
+
         if (data.shipments) {
-          localStorage.setItem('sevkiyat_data_v1', JSON.stringify(data.shipments));
+          const localStr = localStorage.getItem('sevkiyat_data_v1');
+          const newStr = JSON.stringify(data.shipments);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_data_v1', newStr);
+            hasChanges = true;
+          }
         }
         if (data.disabled_days) {
-          localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(data.disabled_days));
+          const localStr = localStorage.getItem('sevkiyat_disabled_days_v1');
+          const newStr = JSON.stringify(data.disabled_days);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_disabled_days_v1', newStr);
+            hasChanges = true;
+          }
         }
         if (data.representatives) {
-          localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(data.representatives));
+          const localStr = localStorage.getItem('sevkiyat_reps_v1');
+          const newStr = JSON.stringify(data.representatives);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_reps_v1', newStr);
+            hasChanges = true;
+          }
         }
         if (data.weekly_notes) {
-          localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(data.weekly_notes));
+          const localStr = localStorage.getItem('sevkiyat_notes_v1');
+          const newStr = JSON.stringify(data.weekly_notes);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_notes_v1', newStr);
+            hasChanges = true;
+          }
         }
-        this.triggerListeners({ action: 'RELOAD_FROM_DB' });
+
+        if (hasChanges || !isSilentPolling) {
+          this.triggerListeners({ action: 'RELOAD_FROM_DB' });
+        }
       }
     } catch (e) {
       console.warn("Supabase DB okuma hatası:", e);
@@ -174,33 +241,14 @@ class SyncManager {
     }
   }
 
-  // --- 2. DÜNYANIN EN ÇOK KULLANILAN KADIN YAPAY ZEKA SES MOTORU ---
+  // --- 3. SES VE BİLDİRİM MOTORU ---
   initAudio() {
     const savedAudio = localStorage.getItem('sevkiyat_audio_enabled');
     if (savedAudio !== null) {
-      this.audioEnabled = savedAudio === 'true';
+      this.audioEnabled = (savedAudio === 'true');
+    } else {
+      this.audioEnabled = true;
     }
-
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.getVoices();
-      };
-    }
-
-    const unlockAudio = () => {
-      if (!this.audioContext) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-          this.audioContext = new AudioCtx();
-        }
-      } else if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-    };
-
-    ['click', 'touchstart', 'keydown'].forEach(evt => {
-      document.addEventListener(evt, unlockAudio, { once: true });
-    });
   }
 
   setAudioEnabled(enabled) {
@@ -211,62 +259,35 @@ class SyncManager {
   playAlertSound(type = 'new_shipment') {
     if (!this.audioEnabled) return;
     try {
-      if (!this.audioContext) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) this.audioContext = new AudioCtx();
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
-
-      if (this.audioContext && this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-
-      if (!this.audioContext) return;
-
-      const startTime = this.audioContext.currentTime;
 
       if (type === 'new_shipment') {
-        // Melodik tatlı bildirim tonu (Do - Mi - Sol)
-        const notes = [523.25, 659.25, 783.99];
-        notes.forEach((freq, idx) => {
-          const osc = this.audioContext.createOscillator();
-          const gain = this.audioContext.createGain();
-
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, startTime + idx * 0.1);
-
-          gain.gain.setValueAtTime(0.0001, startTime + idx * 0.1);
-          gain.gain.exponentialRampToValueAtTime(0.3, startTime + idx * 0.1 + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + idx * 0.1 + 0.22);
-
-          osc.connect(gain);
-          gain.connect(this.audioContext.destination);
-
-          osc.start(startTime + idx * 0.1);
-          osc.stop(startTime + idx * 0.1 + 0.25);
-        });
+        // Çift Bip Ses Melodisi
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc1.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start();
+        osc1.stop(audioCtx.currentTime + 0.25);
       } else {
-        // Yumuşak güncelleme tonu
-        const osc = this.audioContext.createOscillator();
-        const gain = this.audioContext.createGain();
-        const filter = this.audioContext.createBiquadFilter();
-
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, startTime);
-        osc.frequency.exponentialRampToValueAtTime(880, startTime + 0.15);
-
-        filter.type = 'lowpass';
-        filter.frequency.value = 1200;
-
-        gain.gain.setValueAtTime(0.0001, startTime);
-        gain.gain.exponentialRampToValueAtTime(0.22, startTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.22);
-
-        osc.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.audioContext.destination);
-
-        osc.start(startTime);
-        osc.stop(startTime + 0.25);
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
       }
     } catch (e) {
       console.warn("Ses çalma hatası:", e);
@@ -276,10 +297,8 @@ class SyncManager {
   getGlobalFemaleVoice() {
     if (!('speechSynthesis' in window)) return null;
     const voices = window.speechSynthesis.getVoices();
-
     if (!voices || voices.length === 0) return null;
 
-    // Dünyanın En Çok Kullanılan Türkçe Kadın Sesleri Öncelik Sıralaması
     let targetVoice = voices.find(v => 
       (v.lang.startsWith('tr') || v.lang.includes('TR')) && 
       (v.name.includes('Google') || v.name.includes('Neural') || v.name.includes('Yelda') || v.name.includes('Siri') || v.name.includes('Emel'))
@@ -298,7 +317,7 @@ class SyncManager {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(textToRead);
       utterance.lang = 'tr-TR';
-      utterance.rate = 1.10; // Hızlı ve dinamik anons temposu
+      utterance.rate = 1.10;
       utterance.pitch = 1.05;
 
       const femaleVoice = this.getGlobalFemaleVoice();
@@ -315,9 +334,7 @@ class SyncManager {
   speakCustomerName(customerName) {
     if (!this.audioEnabled) return;
     if (!customerName) return;
-
     const textToRead = `Yeni sevkiyat eklendi: ${customerName}`;
-
     if ('speechSynthesis' in window) {
       this.speakCustomerNameNative(textToRead);
     }
@@ -349,7 +366,7 @@ class SyncManager {
     return this.clientId;
   }
 
-  // --- 3. BROADCAST VERİ İLETİŞİM HİZMETLERİ ---
+  // --- 4. BROADCAST ANLIK İLETİŞİM MOTORU ---
   broadcast(action, data) {
     this.pushToSupabaseDB(action, data);
 
@@ -366,33 +383,26 @@ class SyncManager {
   }
 
   handleIncomingBroadcast(payload) {
-    if (payload.action === 'ADD' && payload.data) {
-      const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
-      const exists = shipments.some(s => s.id === payload.data.id);
-      if (!exists) {
-        shipments.push(payload.data);
-        localStorage.setItem('sevkiyat_data_v1', JSON.stringify(shipments));
-        this.announceNewShipment(payload.data.customerName);
-      }
-    } else if (payload.action === 'UPDATE_NOTE') {
-      if (payload.data && payload.data.weekKey) {
-        const notes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
-        if (payload.data.note) {
-          notes[payload.data.weekKey] = payload.data.note;
-        } else {
-          delete notes[payload.data.weekKey];
-        }
-        localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(notes));
-      } else {
-        this.pullFromSupabaseDB();
-      }
-    } else if (payload.action === 'UPDATE_REPS') {
-      this.pullFromSupabaseDB();
-    } else if (payload.action === 'MOVE') {
-      this.pullFromSupabaseDB();
+    if (!payload) return;
+
+    // 1. Eğer tam paket geldiyse doğrudan eşitle
+    if (payload.data && payload.data.shipments) {
+      localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.data.shipments));
+      if (payload.data.disabledDays) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.data.disabledDays));
+      if (payload.data.representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.data.representatives));
+      if (payload.data.weeklyNotes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.data.weeklyNotes));
+      this.triggerListeners(payload);
+    } else {
+      // 2. Değilse veritabanından tam güncel halini anında çek
+      this.pullFromSupabaseDB().then(() => {
+        this.triggerListeners(payload);
+      });
     }
 
-    this.triggerListeners(payload);
+    // Bildirim ve Sesler
+    if (payload.action === 'ADD' && payload.data && payload.data.customerName) {
+      this.announceNewShipment(payload.data.customerName);
+    }
   }
 
   onSync(callback) {
