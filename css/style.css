@@ -55,15 +55,19 @@ body {
 /* --------------------------------------------------------------------------
    1. KURUMSAL HEADER
    -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   1. ULTRA-COMPACT LOW-PROFILE EXECUTIVE HEADER (MAXIMUM CONTENT AREA)
+   -------------------------------------------------------------------------- */
 .app-header {
-  background-color: var(--navy-dark);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: #ffffff;
-  padding: 0.85rem 2rem;
-  border-bottom: 3px solid var(--accent-gold);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.45rem 1.75rem;
+  border-bottom: 2px solid var(--accent-gold);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.3);
   position: sticky;
   top: 0;
   z-index: 100;
+  backdrop-filter: blur(16px);
 }
 
 .header-container {
@@ -72,134 +76,243 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 0.85rem;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .brand-logo-wrapper {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background: #ffffff;
   border-radius: var(--radius-sm);
-  padding: 3px;
+  padding: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1.5px solid var(--accent-gold);
-  box-shadow: 0 4px 10px rgba(197, 160, 89, 0.3);
+  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.3);
   flex-shrink: 0;
-  transition: transform 0.2s ease;
-}
-
-.brand-logo-wrapper:hover {
-  transform: scale(1.04);
 }
 
 .brand-logo-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .brand-titles h1 {
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-size: 1.05rem;
+  font-weight: 900;
   letter-spacing: 0.04em;
   color: #ffffff;
   text-transform: uppercase;
+  line-height: 1;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .sync-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.35rem 0.8rem;
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 800;
   color: #22c55e;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   flex-shrink: 0;
+  backdrop-filter: blur(4px);
 }
 
 .pulse-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   background-color: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 8px #22c55e;
-  animation: live-pulse-dot 1.4s infinite ease-in-out;
+  display: inline-block;
+  flex-shrink: 0;
+  box-shadow: 0 0 10px #22c55e;
+  animation: live-pulse-dot 1.2s infinite ease-in-out;
 }
 
 @keyframes live-pulse-dot {
   0%, 100% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 10px #22c55e, 0 0 18px rgba(34, 197, 94, 0.6);
+    box-shadow: 0 0 12px #22c55e, 0 0 20px rgba(34, 197, 94, 0.8);
   }
   50% {
-    opacity: 0.25;
-    transform: scale(0.75);
-    box-shadow: 0 0 2px #22c55e;
+    opacity: 0.3;
+    transform: scale(0.7);
+    box-shadow: 0 0 3px #22c55e;
   }
 }
 
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-}
-
-.audio-toggle-btn {
+.panel-mode-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.45rem 0.85rem;
+  padding: 0.35rem 0.8rem;
   border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  min-height: 38px;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
-.audio-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.18);
+.panel-mode-badge.admin-badge {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border: 1px solid #f59e0b;
+}
+
+.panel-mode-badge.display-badge {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+}
+
+.pin-shake {
+  animation: pin-shake-anim 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2) !important;
+}
+
+@keyframes pin-shake-anim {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+  40%, 60% { transform: translate3d(6px, 0, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   HARMONIZED EXECUTIVE HEADER BUTTON SYSTEM
+   -------------------------------------------------------------------------- */
+.btn-switch-mode {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 36px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  letter-spacing: 0.02em;
+}
+
+.btn-switch-mode.admin-switch {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border: 1px solid #f59e0b;
+}
+
+.btn-switch-mode.admin-switch:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-switch-mode.display-switch {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+}
+
+.btn-switch-mode.display-switch:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+}
+
+.audio-toggle-btn, .btn-header-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.09);
+  color: #f1f5f9;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.01em;
+}
+
+.audio-toggle-btn:hover, .btn-header-tool:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.38);
+  color: #ffffff;
+  transform: translateY(-1px);
 }
 
 .audio-toggle-btn.muted {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
   color: #fca5a5;
 }
 
-.btn-primary {
-  background-color: var(--accent-blue);
+.btn-header-tool.logout-btn {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fca5a5;
+  font-weight: 800;
+}
+
+.btn-header-tool.logout-btn:hover {
+  background: rgba(239, 68, 68, 0.35);
+  border-color: #ef4444;
   color: #ffffff;
-  border: none;
-  padding: 0.5rem 1rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.4rem 0.95rem;
   border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 900;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
-  transition: all 0.15s ease;
-  min-height: 38px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 36px;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  letter-spacing: 0.03em;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+}
   justify-content: center;
 }
 
@@ -279,15 +392,172 @@ body {
 
 .controls-bar {
   background: var(--card-bg);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 0.75rem 1.25rem;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.15rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   box-shadow: var(--shadow-subtle);
   flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   HAFTALIK SEVKİYAT VE BEKLEYEN YÜK DUYURU NOTU BANNERİ STİLLERİ
+   -------------------------------------------------------------------------- */
+.weekly-note-container {
+  max-width: 1750px;
+  width: 100%;
+  margin: 0.65rem auto 0;
+  padding: 0 1.75rem;
+}
+
+.weekly-announcement-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #fcd34d;
+  border-left: 6px solid #d97706;
+  border-radius: var(--radius-md);
+  padding: 0.65rem 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.14);
+  animation: banner-slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes banner-slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.weekly-announcement-banner.empty-banner {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-left: 4px solid #94a3b8;
+  box-shadow: none;
+}
+
+.announcement-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.announcement-badge {
+  background: #d97706;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+}
+
+.announcement-badge.placeholder {
+  background: #64748b;
+  box-shadow: none;
+}
+
+.announcement-text {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #78350f;
+  line-height: 1.3;
+}
+
+.announcement-text.placeholder {
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.82rem;
+  font-style: italic;
+}
+
+.announcement-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.btn-announcement-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-announcement-action.edit-btn {
+  background: #ffffff;
+  color: #92400e;
+  border-color: #fcd34d;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-announcement-action.edit-btn:hover {
+  background: #fef3c7;
+  border-color: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-announcement-action.delete-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.btn-announcement-action.delete-btn:hover {
+  background: #fee2e2;
+  border-color: #dc2626;
+}
+
+.btn-announcement-action.add-btn {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: #ffffff;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+.btn-announcement-action.add-btn:hover {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  transform: translateY(-1px);
+}
+
+/* HIZLI NOT ŞABLON BUTONLARI */
+.quick-template-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.btn-template-chip {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-template-chip:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  color: #0f172a;
 }
 
 .week-navigator {
@@ -390,9 +660,10 @@ body {
 
 .weekly-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.85rem;
   min-height: 600px;
+  width: 100%;
 }
 
 .weekly-grid.slide-next {
@@ -413,7 +684,7 @@ body {
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* GÜN KOLON KUTUSU - KUSURSUZ KÖŞE UYUMU */
+/* GÜN KOLON KUTUSU - EŞİT BOYUTTA KUSURSUZ KÖŞE UYUMU */
 .day-column {
   background: #f1f5f9;
   border: 1px solid var(--border-medium);
@@ -423,6 +694,8 @@ body {
   overflow: visible;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-subtle);
+  min-width: 0;
+  width: 100%;
 }
 
 .day-column.today {
@@ -778,6 +1051,76 @@ body {
 .shipment-card.is-delivered .order-badge { background: #14532d; color: #ffffff; }
 .shipment-card.is-delivered .card-address-box { background: #ffffff; border-color: #bbf7d0; }
 
+/* ↗️ BAŞKA GÜNE TRANSFER EDİLEN SEVKİYAT İZ KAYIT KARTI (ÖNCEKİ GÜNDE KALAN) */
+.shipment-card.is-transferred-card {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border: 1.5px dashed #c084fc;
+  border-left: 6px solid #7e22ce !important;
+  opacity: 0.88;
+  position: relative;
+}
+
+.shipment-card.is-transferred-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(45deg, rgba(126, 34, 206, 0.05), rgba(126, 34, 206, 0.05) 10px, transparent 10px, transparent 20px);
+  pointer-events: none;
+}
+
+.status-pill.status-transferred {
+  background: #7e22ce !important;
+  color: #ffffff !important;
+  font-weight: 900;
+}
+
+.transferred-from-badge, .transferred-to-badge {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  font-size: 0.63rem;
+  font-weight: 800;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+  border: 1px solid #38bdf8;
+  box-shadow: 0 2px 5px rgba(2, 132, 199, 0.2);
+  margin-bottom: 0.35rem;
+  display: block;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transferred-to-badge {
+  background: linear-gradient(135deg, #7e22ce 0%, #6b21a8 100%);
+  border-color: #c084fc;
+}
+
+.action-btn.transfer-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #7dd3fc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-btn.transfer-btn:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0369a1;
+  transform: scale(1.08);
+}
+
 /* ⚡ HAZIRLANAN SEVKİYAT */
 .shipment-card.is-preparing {
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
@@ -897,14 +1240,15 @@ body {
   overflow-wrap: break-word;
 }
 
-/* 👤 TEMSİLCİ VE 🕒 EKLENME ZAMANI YAN YANA METABAR (TAŞMA KORUMALI) */
+/* 👤 TEMSİLCİ VE 🕒 EKLENME ZAMANI YAN YANA MİNİMAL METABAR (KART YÜKSEKLİĞİNİ UZATMAZ) */
 .card-meta-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.4rem;
+  gap: 0.35rem;
   z-index: 2;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .rep-tag {
@@ -913,55 +1257,46 @@ body {
   border: 1px solid #cbd5e1;
   padding: 0.12rem 0.45rem;
   border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  max-width: 55%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-shrink: 1;
+  flex: 1;
+  min-width: 0;
 }
 
 .created-at-tag {
-  font-size: 0.66rem;
+  font-size: 0.68rem;
   color: #64748b;
   font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* TESLİMAT ADRESİ KUTUSU (100% SIĞAR) */
+/* TESLİMAT ADRESİ KUTUSU (TEK VE SİYAH ARKA PLANLI ETİKET) */
 .card-address-box {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  line-height: 1.35;
-  background: #f8fafc;
-  padding: 0.45rem 0.6rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
-  font-weight: 500;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
   z-index: 2;
-  word-break: break-word;
-  overflow: hidden;
+  width: 100%;
 }
 
 .district-pill {
-  display: inline-block;
-  align-self: flex-start;
-  font-size: 0.66rem;
+  display: block;
+  font-size: 0.76rem;
   font-weight: 800;
-  padding: 0.1rem 0.4rem;
-  border-radius: 3px;
+  padding: 0.32rem 0.6rem;
+  border-radius: var(--radius-sm);
   background: #0f172a;
   color: #ffffff;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.25);
+  border: 1px solid #1e293b;
+  width: 100%;
 }
 
 .card-note-snippet {
@@ -1186,6 +1521,168 @@ body {
 
 .toast-content .title { font-weight: 700; font-size: 0.85rem; }
 .toast-content .desc { font-size: 0.75rem; color: #94a3b8; }
+
+/* ==========================================================================
+   8. KURUMSAL LOJİSTİK CANLI YOL VE MITSUBISHI FUSO KAMYON FOOTER
+   ========================================================================== */
+.corporate-logistics-footer {
+  width: 100%;
+  background: linear-gradient(180deg, #0f172a 0%, #0b132b 100%);
+  border-top: 3px solid var(--accent-gold);
+  position: relative;
+  overflow: hidden;
+  margin-top: auto;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+}
+
+.corporate-highway-track {
+  position: relative;
+  height: 60px;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-bottom: 2px solid #0f172a;
+}
+
+/* AKAN ASFALT ŞERİT ÇİZGİLERİ (CANLI YOL ANİMASYONU) */
+.track-lane-lines {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 200%;
+  height: 3px;
+  transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, #fbbf24 0, #fbbf24 30px, transparent 30px, transparent 60px);
+  animation: move-highway-lines 0.9s linear infinite;
+}
+
+@keyframes move-highway-lines {
+  from { transform: translateY(-50%) translateX(0); }
+  to { transform: translateY(-50%) translateX(-60px); }
+}
+
+/* İLERLEYEN MITSUBISHI FUSO KAMYON KONTEYNERİ */
+.corporate-truck-container {
+  position: absolute;
+  bottom: 10px;
+  left: -260px;
+  display: flex;
+  align-items: flex-end;
+  z-index: 10;
+  animation: drive-fuso-across-screen 16s linear infinite;
+}
+
+@keyframes drive-fuso-across-screen {
+  0% { left: -260px; }
+  100% { left: calc(100% + 260px); }
+}
+
+.fuso-vehicle-card {
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+}
+
+/* KASA (GÜRKAN YAPI LOJİSTİK FİLOSU) */
+.fuso-cargo-unit {
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
+  border: 2px solid #ffffff;
+  border-radius: 6px 2px 2px 6px;
+  padding: 0.3rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 145px;
+  height: 38px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+
+.fuso-corp-title {
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #fbbf24;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.fuso-corp-sub {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+
+/* KABİN (BEYAZ MITSUBISHI FUSO KABİNİ) */
+.fuso-cabin-unit {
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px 10px 4px 2px;
+  width: 44px;
+  height: 35px;
+  margin-left: 3px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+}
+
+.fuso-window {
+  background: #0284c7;
+  border-radius: 3px 6px 1px 1px;
+  height: 14px;
+  width: 100%;
+}
+
+.fuso-emblem-grille {
+  background: #0f172a;
+  border-radius: 2px;
+  height: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.fuso-mark { color: #dc2626; font-size: 0.5rem; line-height: 1; font-weight: bold; }
+.fuso-name { color: #ffffff; font-size: 0.45rem; font-weight: 900; }
+
+.fuso-beam {
+  position: absolute;
+  right: -35px;
+  bottom: -2px;
+  width: 40px;
+  height: 22px;
+  background: radial-gradient(ellipse at left, rgba(254, 240, 138, 0.85) 0%, rgba(254, 240, 138, 0) 80%);
+  clip-path: polygon(0 30%, 100% 0, 100% 100%, 0 70%);
+  pointer-events: none;
+}
+
+/* DÖNEN TEKERLEKLER */
+.fuso-wheels-bar {
+  position: absolute;
+  bottom: -7px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  padding: 0 14px;
+  pointer-events: none;
+}
+
+.fuso-wheel {
+  font-size: 0.95rem;
+  display: inline-block;
+  animation: rotate-fuso-wheels 0.35s linear infinite;
+}
+
+@keyframes rotate-fuso-wheels {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
 /* --------------------------------------------------------------------------
    8. MOBİL & TABLET %100 RESPONSIVE MEDYA SORGULARI (BREAKPOINTS)

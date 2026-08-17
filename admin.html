@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gürkan Yapı Malzemeleri - Sevkiyat Yönetici Paneli</title>
+  
+  <!-- Kurumsal Stil Dosyası -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="mode-admin">
+
+  <!-- ==========================================================================
+       1. ULTRA-COMPACT SLIM EXECUTIVE HEADER (HARMONIZED BUTTONS)
+       ========================================================================== -->
+  <header class="app-header compact-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-logo-wrapper">
+          <img src="images/logo.png" alt="Gürkan Yapı Logo" class="brand-logo-img">
+        </div>
+        <div class="brand-titles">
+          <h1>GÜRKAN YAPI MALZEMELERİ</h1>
+        </div>
+        <div class="panel-mode-badge admin-badge" title="Yönetici Paneli - Tam Yetkili Düzenleme ve Silme Modu">
+          <span>👑 YÖNETİCİ PANELİ</span>
+        </div>
+        <div class="sync-badge" title="Gerçek Zamanlı Veritabanı Senkronizasyonu Aktif">
+          <span class="pulse-dot"></span>
+          <span>CANLI</span>
+        </div>
+        <div class="live-clock-badge" title="Anlık Canlı Sistem Saati ve Saniyesi">
+          <span class="clock-icon">🕒</span>
+          <span id="liveClock">00:00:00</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <a href="index.html" class="btn-switch-mode display-switch" title="Sevkiyat Canlı Bilgi & İzleme Ekranına Geçin">
+          📺 İzleme Ekranı
+        </a>
+        <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli bildirimleri aç/kapat">
+          🔊 Ses: Açık
+        </button>
+        <button id="testSoundBtn" class="btn-header-tool" title="Ses motorunu test edin">
+          🔔 Ses Testi
+        </button>
+        <button id="manageRepsBtn" class="btn-header-tool" title="Pazarlamacı ve Temsilci Listesini Yönetin">
+          ⚙️ Pazarlamacılar
+        </button>
+        <button id="btnLogoutAdmin" class="btn-header-tool logout-btn" title="Yönetici oturumunu kapatın">
+          🔒 Oturumu Kapat
+        </button>
+        <button id="newShipmentBtn" class="btn-primary">
+          <span>➕ YENİ SEVKİYAT EKLE</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       2. KONTROL BAR & METRİKLER (KPI & ARA-FİLTRE)
+       ========================================================================== -->
+  <section class="dashboard-bar">
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-info">
+          <span class="lbl">Haftalık Toplam</span>
+          <span class="val" id="totalCount">0</span>
+        </div>
+      </div>
+      <div class="metric-card status-pending">
+        <div class="metric-info">
+          <span class="lbl">Beklemede</span>
+          <span class="val" id="pendingCount">0</span>
+        </div>
+      </div>
+      <div class="metric-card status-transit">
+        <div class="metric-info">
+          <span class="lbl">Hazırlanan / Yolda</span>
+          <span class="val" id="transitCount">0</span>
+        </div>
+      </div>
+      <div class="metric-card status-delivered">
+        <div class="metric-info">
+          <span class="lbl">Teslim Edildi</span>
+          <span class="val" id="deliveredCount">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div class="week-navigator">
+        <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◄</button>
+        <span id="weekTitle" class="week-title">12 - 17 Ağustos 2026</span>
+        <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">►</button>
+        <button id="todayWeekBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem;">Bu Hafta</button>
+      </div>
+
+      <div class="search-filter-group">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Müşteri, adres, temsilci ara...">
+        </div>
+        <select id="filterStatusSelect" class="filter-select">
+          <option value="ALL">Tüm Durumlar</option>
+          <option value="Beklemede">Beklemede</option>
+          <option value="Hazırlanıyor">Hazırlanıyor</option>
+          <option value="Yolda">Yolda</option>
+          <option value="Teslim Edildi">Teslim Edildi</option>
+          <option value="İptal">İptal</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==========================================================================
+       3. HAFTALIK SEVKİYAT VE BEKLEYEN YÜK NOT ALANI (WEEKLY NOTE BANNER)
+       ========================================================================== -->
+  <div id="weeklyNoteBannerContainer" class="weekly-note-container"></div>
+
+  <!-- ==========================================================================
+       4. HAFTALIK TAKVİM IZGARASI (6 GÜN)
+       ========================================================================== -->
+  <main class="calendar-wrapper">
+    <div id="weeklyGrid" class="weekly-grid">
+      <!-- JavaScript dinamik oluşturacak -->
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       5. SEVKİYAT EKLE / DÜZENLE MODAL
+       ========================================================================== -->
+  <div id="shipmentModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modalTitle">YENİ SEVKİYAT GİRİŞİ</h2>
+        <button id="closeModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="shipmentForm">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="inputDay">Sevkiyat Günü</label>
+              <select id="inputDay" required>
+                <option value="1">Pazartesi</option>
+                <option value="2">Salı</option>
+                <option value="3">Çarşamba</option>
+                <option value="4">Perşembe</option>
+                <option value="5">Cuma</option>
+                <option value="6">Cumartesi</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputShipmentOrder">Sevk Sırası</label>
+              <select id="inputShipmentOrder" required>
+                <option value="1. Sevk">1. Sevk</option>
+                <option value="2. Sevk">2. Sevk</option>
+                <option value="3. Sevk">3. Sevk</option>
+                <option value="4. Sevk">4. Sevk</option>
+                <option value="Ek Sevk">Ek Sevk</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputCustomerName">Müşteri / Alıcı Unvanı</label>
+              <input type="text" id="inputCustomerName" placeholder="Örn: Yılmaz İnşaat A.Ş." required>
+            </div>
+
+            <div class="form-group">
+              <label for="inputTimeOfDay">Sevkiyat Zaman Dilimi</label>
+              <select id="inputTimeOfDay">
+                <option value="Sabah Sevkiyatı">Sabah Sevkiyatı (08:00 - 12:00)</option>
+                <option value="Öğleden Sonra Sevkiyatı">Öğleden Sonra (13:00 - 17:00)</option>
+                <option value="Gün Boyu / Esnek">Gün Boyu / Esnek</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="inputRepresentative">Müşteri Temsilcisi / Pazarlamacı</label>
+              <select id="inputRepresentative" required>
+                <!-- JS Dinamik Pazarlamacı Listesi Dolduracak -->
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputAddress">Teslimat Adresi</label>
+              <textarea id="inputAddress" rows="2" placeholder="İlçe ve adres bilgilerini tam giriniz..." required></textarea>
+            </div>
+
+            <div class="form-group">
+              <label for="inputStatus">Sevkiyat Durumu</label>
+              <select id="inputStatus">
+                <option value="Beklemede">Beklemede</option>
+                <option value="Hazırlanıyor">Hazırlanıyor</option>
+                <option value="Yolda">Yolda</option>
+                <option value="Teslim Edildi">Teslim Edildi</option>
+                <option value="İptal">İptal</option>
+              </select>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="inputNotes">Sevkiyat Notu (Opsiyonel)</label>
+              <input type="text" id="inputNotes" placeholder="Örn: Vinçli araç yanaşacak, kapıda nakit ödeme.">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="cancelModalBtn" class="btn-secondary">İptal</button>
+          <button type="submit" class="btn-primary">Kayıt Oluştur</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       6. SEVKİYAT AKTAR / HEDEF GÜNE TRANSFER MODALİ
+       ========================================================================== -->
+  <div id="transferModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 450px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+        <h2>↗️ SEVKİYAT GÜNÜ AKTAR / TRANSFER ET</h2>
+        <button id="closeTransferModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="transferForm">
+        <div class="modal-body" style="padding: 1.5rem;">
+          <p id="transferShipmentInfoText" style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin-bottom: 0.9rem; background: #f0f7ff; padding: 0.65rem 0.85rem; border-radius: 6px; border-left: 4px solid #0284c7;">
+            Sevkiyat: Müşteri Adı
+          </p>
+
+          <div class="form-group full-width">
+            <label for="inputTargetDay">Transfer Edilecek Hedef Gün</label>
+            <select id="inputTargetDay" required>
+              <option value="1">Pazartesi</option>
+              <option value="2">Salı</option>
+              <option value="3">Çarşamba</option>
+              <option value="4">Perşembe</option>
+              <option value="5">Cuma</option>
+              <option value="6">Cumartesi</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width" style="margin-top: 0.85rem;">
+            <label for="inputTransferReason">Transfer Sebebi / Notu (Opsiyonel)</label>
+            <input type="text" id="inputTransferReason" placeholder="Örn: Müşteri ricası üzerine erteleme, araç doluluğu vb.">
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button type="button" id="cancelTransferModalBtn" class="btn-secondary">İptal</button>
+          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-color: #38bdf8;">
+            <span>↗️ Transfer Et & Aktar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       7. HAFTALIK SEVKİYAT / BEKLEYEN YÜK NOTU GİRİŞ MODALİ (NOTE MODAL)
+       ========================================================================== -->
+  <div id="noteModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h2>📢 SEVKİYAT VE BEKLEYEN YÜK NOTU</h2>
+        <button id="closeNoteModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <form id="noteForm">
+        <div class="modal-body">
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+            Ekranın üst kısmında tüm personel ve canlı izleme ekranlarında görünecek duyuru notunu yazınız.
+          </p>
+          <div class="form-group full-width">
+            <label for="inputWeeklyNoteText">Sevkiyat Duyuru Notu</label>
+            <textarea id="inputWeeklyNoteText" rows="3" placeholder="Örn: Borçka yükü için 2. müşteri beklenmektedir." required></textarea>
+          </div>
+          <div style="margin-top: 0.75rem;">
+            <label style="font-size: 0.75rem; font-weight: 800; color: #475569; display: block; margin-bottom: 0.4rem;">Hızlı Not Şablonları (Tıklayarak Ekleyin):</label>
+            <div class="quick-template-buttons">
+              <button type="button" class="btn-template-chip" data-template="Borçka yükü için 2. müşteri beklenmektedir.">💡 Borçka 2. Müşteri Bekleniyor</button>
+              <button type="button" class="btn-template-chip" data-template="Araç doluluğu %50 - 2. sevk beklenmektedir.">💡 2. Sevk Beklenmektedir</button>
+              <button type="button" class="btn-template-chip" data-template="Depodan malzeme çıkışı beklenmektedir.">💡 Malzeme Çıkışı Bekleniyor</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="justify-content: space-between;">
+          <button type="button" id="cancelNoteModalBtn" class="btn-secondary">İptal</button>
+          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #f59e0b;">
+            <span>📢 Kaydet ve Yayınla</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       8. PAZARLAMACI / TEMSİLCİ YÖNETİMİ MODAL
+       ========================================================================== -->
+  <div id="repManagerModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>PAZARLAMACI VE TEMSİLCİ YÖNETİMİ</h2>
+        <button id="closeRepModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="add-rep-bar">
+          <input type="text" id="newRepInput" placeholder="Yeni Pazarlamacı / Temsilci Adı Giriniz...">
+          <button type="button" id="addRepBtn" class="btn-primary">➕ Ekle</button>
+        </div>
+        
+        <div class="rep-list-container">
+          <ul id="repListEl" class="rep-list">
+            <!-- JS Dinamik Oluşturacak -->
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="doneRepModalBtn" class="btn-primary">Tamam</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       9. ANLIK TOAST BİLDİRİMLERİ
+       ========================================================================== -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ==========================================================================
+       10. KURUMSAL LOJİSTİK VE FİLO TAKİP FOOTER BAR
+       ========================================================================== -->
+  <footer class="corporate-logistics-footer">
+    <div class="corporate-highway-track">
+      <div class="track-lane-lines"></div>
+      
+      <!-- RESMİ KURUMSAL MITSUBISHI FUSO SEVKİYAT ARACI -->
+      <div class="corporate-truck-container">
+        <div class="fuso-vehicle-card">
+          <div class="fuso-cargo-unit">
+            <span class="fuso-corp-title">GÜRKAN YAPI</span>
+            <span class="fuso-corp-sub">LOJİSTİK FİLOSU</span>
+          </div>
+          <div class="fuso-cabin-unit">
+            <div class="fuso-window"></div>
+            <div class="fuso-emblem-grille">
+              <span class="fuso-mark">❖</span>
+              <span class="fuso-name">FUSO</span>
+            </div>
+            <div class="fuso-beam"></div>
+          </div>
+          <div class="fuso-wheels-bar">
+            <span class="fuso-wheel">⚙️</span>
+            <span class="fuso-wheel">⚙️</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- SUPABASE PROJE AYARLARI -->
+  <script src="js/supabase-config.js"></script>
+  <!-- REALTIME CANLI VERİTABANI İLETİŞİM MOTORU -->
+  <script src="js/sync.js"></script>
+  <!-- KRİPTOGRAFİK ŞİFRELİ GİRİŞ MOTORU -->
+  <script src="js/auth.js"></script>
+  <!-- ANA UYGULAMA MANTIĞI -->
+  <script src="js/app.js"></script>
+</body>
+</html>

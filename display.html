@@ -39,9 +39,9 @@
       </div>
 
       <div class="header-actions">
-        <button id="btnOpenAdminAuth" class="btn-switch-mode admin-switch" title="Şifreli Yönetici Paneline Giriş Yapın">
+        <a href="admin.html" class="btn-switch-mode admin-switch" title="Yönetici Paneline Geçiş Yapın">
           🔑 Yönetici Paneli Girişi
-        </button>
+        </a>
         <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli bildirimleri aç/kapat">
           🔊 Ses: Açık
         </button>
@@ -123,45 +123,12 @@
   </main>
 
   <!-- ==========================================================================
-       5. YÖNETİCİ PANELİ ŞİFRELİ GİRİŞ MODALİ (PIN AUTH MODAL)
-       ========================================================================== -->
-  <div id="pinAuthModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 420px;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
-        <h2>🔒 YÖNETİCİ PANELİ GİRİŞİ</h2>
-        <button id="closePinModalBtn" class="modal-close-btn">&times;</button>
-      </div>
-      <form id="pinAuthForm">
-        <div class="modal-body" style="text-align: center; padding: 1.8rem 1.5rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔑</div>
-          <h3 style="font-weight: 800; font-size: 1.05rem; color: #0f172a; margin-bottom: 0.3rem;">YÖNETİCİ GİRİŞ ŞİFRESİ</h3>
-          <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.2rem;">Yönetici paneline erişmek için 4 haneli PIN şifrenizi giriniz.</p>
-          
-          <div class="form-group" style="max-width: 240px; margin: 0 auto 1rem;">
-            <input type="password" id="pinAuthInput" placeholder="••••" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em; font-weight: 900; min-height: 48px;" required>
-          </div>
-          
-          <div id="pinErrorMessage" style="display: none; color: #dc2626; font-size: 0.78rem; font-weight: 800; margin-bottom: 0.5rem;">
-            ❌ Hatalı Şifre! Lütfen tekrar deneyiniz.
-          </div>
-        </div>
-        <div class="modal-footer" style="justify-content: space-between;">
-          <button type="button" id="cancelPinModalBtn" class="btn-secondary">İptal</button>
-          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #f59e0b;">
-            <span>🔓 Giriş Yap</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==========================================================================
-       6. ANLIK TOAST BİLDİRİMLERİ
+       5. ANLIK TOAST BİLDİRİMLERİ
        ========================================================================== -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- ==========================================================================
-       7. KURUMSAL LOJİSTİK VE FİLO TAKİP FOOTER BAR
+       6. KURUMSAL LOJİSTİK VE FİLO TAKİP FOOTER BAR
        ========================================================================== -->
   <footer class="corporate-logistics-footer">
     <div class="corporate-highway-track">
@@ -195,8 +162,6 @@
   <script src="js/supabase-config.js"></script>
   <!-- REALTIME CANLI VERİTABANI İLETİŞİM MOTORU -->
   <script src="js/sync.js"></script>
-  <!-- KRİPTOGRAFİK ŞİFRELİ GİRİŞ MOTORU -->
-  <script src="js/auth.js"></script>
   <!-- ANA UYGULAMA MANTIĞI -->
   <script src="js/app.js"></script>
 </body>

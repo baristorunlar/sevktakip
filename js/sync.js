@@ -89,6 +89,9 @@ class SyncManager {
               if (payload.new.representatives) {
                 localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.new.representatives));
               }
+              if (payload.new.weekly_notes) {
+                localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.new.weekly_notes));
+              }
               this.triggerListeners({ action: 'DB_LIVE_UPDATE' });
             }
           }
@@ -122,6 +125,9 @@ class SyncManager {
         if (data.representatives) {
           localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(data.representatives));
         }
+        if (data.weekly_notes) {
+          localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(data.weekly_notes));
+        }
         this.triggerListeners({ action: 'RELOAD_FROM_DB' });
       }
     } catch (e) {
@@ -137,6 +143,7 @@ class SyncManager {
       const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
       const disabledDays = JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]');
       const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
+      const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
 
       await this.supabase
         .from('shipments_data')
@@ -145,6 +152,7 @@ class SyncManager {
           shipments: shipments,
           disabled_days: disabledDays,
           representatives: representatives,
+          weekly_notes: weeklyNotes,
           last_action: action,
           sender_id: this.getSenderId(),
           updated_at: new Date().toISOString()
@@ -202,7 +210,6 @@ class SyncManager {
 
   playAlertSound(type = 'new_shipment') {
     if (!this.audioEnabled) return;
-
     try {
       if (!this.audioContext) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -215,57 +222,40 @@ class SyncManager {
 
       if (!this.audioContext) return;
 
-      const now = this.audioContext.currentTime;
+      const startTime = this.audioContext.currentTime;
 
       if (type === 'new_shipment') {
-        // 🎼 PREMİUM GONG SİNYALİ (C5 -> E5 -> G5 -> C6 LÜKS ÇAN AKORU)
-        const chordNotes = [523.25, 659.25, 783.99, 1046.50];
-        
-        chordNotes.forEach((freq, index) => {
-          const startTime = now + (index * 0.08);
-          
-          const osc1 = this.audioContext.createOscillator();
-          const osc2 = this.audioContext.createOscillator();
-          const gainNode = this.audioContext.createGain();
-          const filterNode = this.audioContext.createBiquadFilter();
+        // Melodik tatlı bildirim tonu (Do - Mi - Sol)
+        const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, idx) => {
+          const osc = this.audioContext.createOscillator();
+          const gain = this.audioContext.createGain();
 
-          osc1.type = 'sine';
-          osc1.frequency.setValueAtTime(freq, startTime);
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime + idx * 0.1);
 
-          osc2.type = 'triangle';
-          osc2.frequency.setValueAtTime(freq * 2, startTime);
+          gain.gain.setValueAtTime(0.0001, startTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.3, startTime + idx * 0.1 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, startTime + idx * 0.1 + 0.22);
 
-          filterNode.type = 'lowpass';
-          filterNode.frequency.setValueAtTime(3200, startTime);
+          osc.connect(gain);
+          gain.connect(this.audioContext.destination);
 
-          gainNode.gain.setValueAtTime(0.0001, startTime);
-          gainNode.gain.exponentialRampToValueAtTime(0.28, startTime + 0.015);
-          gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.85);
-
-          osc1.connect(filterNode);
-          osc2.connect(filterNode);
-          filterNode.connect(gainNode);
-          gainNode.connect(this.audioContext.destination);
-
-          osc1.start(startTime);
-          osc2.start(startTime);
-          osc1.stop(startTime + 0.9);
-          osc2.stop(startTime + 0.9);
+          osc.start(startTime + idx * 0.1);
+          osc.stop(startTime + idx * 0.1 + 0.25);
         });
-
-      } else if (type === 'update_shipment') {
-        // 🎯 LÜKS DOKUNMATİK TIKLAMA SİNYALİ
-        const startTime = now;
+      } else {
+        // Yumuşak güncelleme tonu
         const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
         const filter = this.audioContext.createBiquadFilter();
 
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, startTime);
-        osc.frequency.exponentialRampToValueAtTime(880.00, startTime + 0.06);
+        osc.frequency.setValueAtTime(440, startTime);
+        osc.frequency.exponentialRampToValueAtTime(880, startTime + 0.15);
 
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(2400, startTime);
+        filter.frequency.value = 1200;
 
         gain.gain.setValueAtTime(0.0001, startTime);
         gain.gain.exponentialRampToValueAtTime(0.22, startTime + 0.01);
@@ -328,22 +318,16 @@ class SyncManager {
 
     const textToRead = `Yeni sevkiyat eklendi: ${customerName}`;
 
-    try {
-      // 🌟 DÜNYANIN EN ÇOK DİNLENEN VE KULLANILAN KADIN YAPAY ZEKA SESİ (Hızlı ve Dinamik Anons Temposu)
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToRead)}&tl=tr&client=tw-ob`;
-      const ttsAudio = new Audio(audioUrl);
-      ttsAudio.volume = 1.0;
-      ttsAudio.playbackRate = 1.10; // Seri ve hızlı anons temposu
-
-      const playPromise = ttsAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn("Küresel HD ses akışı engellendi, yerel kadın sesine düşülüyor:", err);
-          this.speakCustomerNameNative(textToRead);
-        });
-      }
-    } catch (e) {
+    if ('speechSynthesis' in window) {
       this.speakCustomerNameNative(textToRead);
+    }
+  }
+
+  speakText(text) {
+    if (!this.audioEnabled) return;
+    if (!text) return;
+    if ('speechSynthesis' in window) {
+      this.speakCustomerNameNative(text);
     }
   }
 
@@ -351,42 +335,28 @@ class SyncManager {
     this.playAlertSound('new_shipment');
     setTimeout(() => {
       this.speakCustomerName(customerName);
-    }, 550);
+    }, 400);
   }
 
   testSound() {
-    this.announceNewShipment('Gürkan Ticaret');
+    this.playAlertSound('new_shipment');
+    setTimeout(() => {
+      this.speakCustomerName("Gürkan Yapı Malzemeleri Test");
+    }, 450);
   }
 
-  // --- 3. ANLIK BROADCAST İLETİŞİM HESABI ---
   getSenderId() {
     return this.clientId;
   }
 
+  // --- 3. BROADCAST VERİ İLETİŞİM HİZMETLERİ ---
   broadcast(action, data) {
-    // 1. WebSocket Broadcast Yayınla
+    this.pushToSupabaseDB(action, data);
+
     if (this.channel) {
       this.channel.send({
         type: 'broadcast',
         event: 'SHIPMENT_CHANGE',
-        payload: {
-          action: action,
-          data: data,
-          sender_id: this.getSenderId(),
-          timestamp: Date.now()
-        }
-      });
-    }
-
-    // 2. Supabase Kalıcı PostgreSQL Veritabanına Tüm Verileri Yaz
-    this.pushToSupabaseDB(action, data);
-
-    // 3. Yerel Tarayıcılar Arası BroadcastChannel
-    if (window.BroadcastChannel) {
-      if (!this.localBc) {
-        this.localBc = new BroadcastChannel('sevkiyat_sync_channel');
-      }
-      this.localBc.postMessage({
         action: action,
         data: data,
         sender_id: this.getSenderId(),
@@ -403,6 +373,18 @@ class SyncManager {
         shipments.push(payload.data);
         localStorage.setItem('sevkiyat_data_v1', JSON.stringify(shipments));
         this.announceNewShipment(payload.data.customerName);
+      }
+    } else if (payload.action === 'UPDATE_NOTE') {
+      if (payload.data && payload.data.weekKey) {
+        const notes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
+        if (payload.data.note) {
+          notes[payload.data.weekKey] = payload.data.note;
+        } else {
+          delete notes[payload.data.weekKey];
+        }
+        localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(notes));
+      } else {
+        this.pullFromSupabaseDB();
       }
     } else if (payload.action === 'UPDATE_REPS') {
       this.pullFromSupabaseDB();
