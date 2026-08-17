@@ -42,6 +42,9 @@
         <a href="index.html" class="btn-switch-mode display-switch" title="Sevkiyat Canlı Bilgi & İzleme Ekranına Geçin">
           📺 İzleme Ekranı
         </a>
+        <button id="viewAuditLogsBtn" class="btn-header-tool" title="Tüm İşlem ve Değişiklik Geçmişini İnceleyin">
+          📜 İşlem Logları
+        </button>
         <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli bildirimleri aç/kapat">
           🔊 Ses: Açık
         </button>
@@ -324,12 +327,50 @@
   </div>
 
   <!-- ==========================================================================
-       9. ANLIK TOAST BİLDİRİMLERİ
+       9. İŞLEM & DENETİM LOG GEÇMİŞİ MODALİ (AUDIT LOG MODAL)
+       ========================================================================== -->
+  <div id="auditLogModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 750px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+        <h2>📜 SEVKİYAT İŞLEM VE DÜZENLEME GEÇMİŞİ LOGLARI</h2>
+        <button id="closeAuditLogModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.2rem;">
+        <div class="log-filter-bar" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <input type="text" id="auditLogSearchInput" placeholder="Loglarda müşteri, pazarlamacı veya işlem ara..." style="flex: 1; min-width: 200px; padding: 0.4rem 0.75rem; font-size: 0.82rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+          <select id="auditLogActionFilter" style="padding: 0.4rem 0.75rem; font-size: 0.82rem; border-radius: 6px; border: 1px solid #cbd5e1;">
+            <option value="ALL">Tüm İşlem Tipleri</option>
+            <option value="ADD">➕ Sevkiyat Ekleme</option>
+            <option value="UPDATE">✏️ Düzenleme</option>
+            <option value="TRANSFER">↗️ Gün Transferi</option>
+            <option value="STATUS">🔄 Durum Değişikliği</option>
+            <option value="DELETE">🗑️ Silme</option>
+            <option value="NOTE">📢 Duyuru Notu</option>
+            <option value="SERVICE">🚫 Araç Servis</option>
+          </select>
+          <button type="button" id="clearAuditLogsBtn" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.78rem; color: #dc2626; border-color: #fca5a5;">🗑️ Logları Temizle</button>
+        </div>
+
+        <div class="audit-log-list-container" style="max-height: 420px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; padding: 0.5rem;">
+          <ul id="auditLogListEl" class="audit-log-list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem;">
+            <!-- JS Dinamik Dolduracak -->
+          </ul>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <span style="font-size: 0.78rem; color: #64748b; font-weight: 700;">Toplam İşlem Kaydı: <strong id="auditLogTotalCount" style="color: #0f172a;">0</strong></span>
+        <button type="button" id="doneAuditLogModalBtn" class="btn-primary">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       10. ANLIK TOAST BİLDİRİMLERİ
        ========================================================================== -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- ==========================================================================
-       10. KURUMSAL LOJİSTİK VE FİLO TAKİP FOOTER BAR
+       11. KURUMSAL LOJİSTİK VE FİLO TAKİP FOOTER BAR
        ========================================================================== -->
   <footer class="corporate-logistics-footer">
     <div class="corporate-highway-track">

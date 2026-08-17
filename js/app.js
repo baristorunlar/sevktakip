@@ -11,6 +11,7 @@ class ShipmentApp {
     this.disabledDays = [];
     this.representatives = [];
     this.weeklyNotes = {}; // Haftalık özel operasyonel notlar/duyurular { weekKey: noteText }
+    this.auditLogs = []; // İşlem ve değişiklik denetim log kayıtları
     this.currentWeekStart = this.getMonday(new Date());
     this.draggedShipmentId = null;
     this.searchTerm = '';
@@ -48,6 +49,7 @@ class ShipmentApp {
     this.manageRepsBtn = document.getElementById('manageRepsBtn');
     this.audioToggleBtn = document.getElementById('audioToggleBtn');
     this.testSoundBtn = document.getElementById('testSoundBtn');
+    this.viewAuditLogsBtn = document.getElementById('viewAuditLogsBtn');
 
     this.shipmentModal = document.getElementById('shipmentModal');
     this.modalTitle = document.getElementById('modalTitle');
@@ -82,6 +84,16 @@ class ShipmentApp {
     this.inputTargetDay = document.getElementById('inputTargetDay');
     this.inputTransferReason = document.getElementById('inputTransferReason');
     this.transferShipmentInfoText = document.getElementById('transferShipmentInfoText');
+
+    // İşlem Logları Modal Elemanları
+    this.auditLogModal = document.getElementById('auditLogModal');
+    this.closeAuditLogModalBtn = document.getElementById('closeAuditLogModalBtn');
+    this.doneAuditLogModalBtn = document.getElementById('doneAuditLogModalBtn');
+    this.clearAuditLogsBtn = document.getElementById('clearAuditLogsBtn');
+    this.auditLogSearchInput = document.getElementById('auditLogSearchInput');
+    this.auditLogActionFilter = document.getElementById('auditLogActionFilter');
+    this.auditLogListEl = document.getElementById('auditLogListEl');
+    this.auditLogTotalCount = document.getElementById('auditLogTotalCount');
 
     this.toastContainer = document.getElementById('toastContainer');
     this.weeklyNoteBannerContainer = document.getElementById('weeklyNoteBannerContainer');
@@ -119,12 +131,20 @@ class ShipmentApp {
         this.weeklyNotes = {};
       }
 
+      const savedLogs = localStorage.getItem('sevkiyat_audit_logs_v1');
+      if (savedLogs) {
+        this.auditLogs = JSON.parse(savedLogs);
+      } else {
+        this.auditLogs = [];
+      }
+
       this.populateRepDropdown();
     } catch (e) {
       console.error("Veri yükleme hatası:", e);
       this.shipments = [];
       this.representatives = [...DEFAULT_REPRESENTATIVES];
       this.weeklyNotes = {};
+      this.auditLogs = [];
     }
   }
 
@@ -154,18 +174,51 @@ class ShipmentApp {
       localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(this.disabledDays));
       localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(this.representatives));
       localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(this.weeklyNotes));
+      localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(this.auditLogs));
 
       if (shouldBroadcast && window.syncManager) {
         window.syncManager.broadcast(actionType, dataPayload || {
           shipments: this.shipments,
           disabledDays: this.disabledDays,
           representatives: this.representatives,
-          weeklyNotes: this.weeklyNotes
+          weeklyNotes: this.weeklyNotes,
+          auditLogs: this.auditLogs
         });
       }
     } catch (e) {
       console.error("Veri kaydetme hatası:", e);
     }
+  }
+
+  // LOG EKLEME MOTORU (KİM NE ZAMAN NE İŞLEM YAPTI?)
+  addAuditLog(actionType, title, details = '', repName = '') {
+    const now = new Date();
+    const formattedTime = now.toLocaleDateString('tr-TR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+
+    const logEntry = {
+      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      timestamp: now.toISOString(),
+      formattedTime: formattedTime,
+      actionType: actionType,
+      title: title,
+      details: details,
+      repName: repName || 'Yönetici'
+    };
+
+    this.auditLogs.unshift(logEntry);
+
+    if (this.auditLogs.length > 500) {
+      this.auditLogs = this.auditLogs.slice(0, 500);
+    }
+
+    localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(this.auditLogs));
   }
 
   getMondayISOString(mondayDate) {
@@ -404,6 +457,19 @@ class ShipmentApp {
         });
       }
 
+      // İşlem Logları Modal Event Listeners
+      if (this.viewAuditLogsBtn) this.viewAuditLogsBtn.addEventListener('click', () => this.openAuditLogModal());
+      if (this.closeAuditLogModalBtn) this.closeAuditLogModalBtn.addEventListener('click', () => this.closeAuditLogModal());
+      if (this.doneAuditLogModalBtn) this.doneAuditLogModalBtn.addEventListener('click', () => this.closeAuditLogModal());
+      if (this.clearAuditLogsBtn) this.clearAuditLogsBtn.addEventListener('click', () => this.clearAuditLogs());
+
+      if (this.auditLogSearchInput) {
+        this.auditLogSearchInput.addEventListener('input', () => this.renderAuditLogList());
+      }
+      if (this.auditLogActionFilter) {
+        this.auditLogActionFilter.addEventListener('change', () => this.renderAuditLogList());
+      }
+
       // Hızlı Not Şablon Butonları
       document.querySelectorAll('.btn-template-chip').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -418,6 +484,85 @@ class ShipmentApp {
     if (this.audioToggleBtn && window.syncManager) {
       this.updateAudioBtnUI(window.syncManager.audioEnabled);
     }
+  }
+
+  // --- İŞLEM & DENETİM LOG METOTLARI ---
+  openAuditLogModal() {
+    if (this.isReadOnly) return;
+    this.renderAuditLogList();
+    if (this.auditLogModal) this.auditLogModal.classList.add('active');
+  }
+
+  closeAuditLogModal() {
+    if (this.auditLogModal) this.auditLogModal.classList.remove('active');
+  }
+
+  clearAuditLogs() {
+    if (this.isReadOnly) return;
+    if (confirm('Tüm işlem log geçmişini silmek istediğinizden emin misiniz?')) {
+      this.auditLogs = [];
+      localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify([]));
+      if (window.syncManager) {
+        window.syncManager.pushToSupabaseDB('CLEAR_LOGS');
+      }
+      this.renderAuditLogList();
+      this.showToast('Loglar Temizlendi', 'Tüm işlem log kaydı silindi.');
+    }
+  }
+
+  renderAuditLogList() {
+    if (!this.auditLogListEl) return;
+    this.auditLogListEl.innerHTML = '';
+
+    const searchVal = this.auditLogSearchInput ? this.auditLogSearchInput.value.toLowerCase().trim() : '';
+    const filterVal = this.auditLogActionFilter ? this.auditLogActionFilter.value : 'ALL';
+
+    const filteredLogs = this.auditLogs.filter(log => {
+      if (filterVal !== 'ALL' && log.actionType !== filterVal) return false;
+      if (searchVal) {
+        const matchTarget = `${log.title} ${log.details} ${log.repName} ${log.formattedTime}`.toLowerCase();
+        if (!matchTarget.includes(searchVal)) return false;
+      }
+      return true;
+    });
+
+    if (this.auditLogTotalCount) {
+      this.auditLogTotalCount.textContent = filteredLogs.length;
+    }
+
+    if (filteredLogs.length === 0) {
+      this.auditLogListEl.innerHTML = `
+        <li style="text-align: center; padding: 1.5rem; color: #64748b; font-size: 0.85rem;">
+          Gösterilecek işlem log kaydı bulunmamaktadır.
+        </li>
+      `;
+      return;
+    }
+
+    filteredLogs.forEach(log => {
+      const li = document.createElement('li');
+      li.style.cssText = 'background: #ffffff; padding: 0.65rem 0.85rem; border-radius: 6px; border: 1px solid #cbd5e1; display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.82rem; border-left: 4px solid #2563eb;';
+
+      if (log.actionType === 'TRANSFER') li.style.borderLeftColor = '#0284c7';
+      else if (log.actionType === 'DELETE') li.style.borderLeftColor = '#dc2626';
+      else if (log.actionType === 'STATUS') li.style.borderLeftColor = '#16a34a';
+      else if (log.actionType === 'NOTE') li.style.borderLeftColor = '#d97706';
+      else if (log.actionType === 'SERVICE') li.style.borderLeftColor = '#9333ea';
+
+      li.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="color: #0f172a; font-size: 0.85rem;">${log.title}</strong>
+          <span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">🕒 ${log.formattedTime}</span>
+        </div>
+        <div style="color: #475569; font-size: 0.78rem;">${log.details}</div>
+        <div style="font-size: 0.7rem; color: #1e293b; font-weight: 700; display: flex; align-items: center; gap: 0.3rem;">
+          <span>👤 Temsilci / Pazarlamacı:</span>
+          <span style="background: #f1f5f9; padding: 0.05rem 0.35rem; border-radius: 3px; border: 1px solid #cbd5e1;">${log.repName || 'Yönetici'}</span>
+        </div>
+      `;
+
+      this.auditLogListEl.appendChild(li);
+    });
   }
 
   // --- SEVKİYAT AKTAR / TRANSFER METOTLARI ---
@@ -503,6 +648,15 @@ class ShipmentApp {
     if (reason) shipment.notes = (shipment.notes ? shipment.notes + ' | ' : '') + `Aktarım (${oldDayName}->${newDayName}): ${reason}`;
 
     this.shipments.push(transferRecordCard);
+
+    // LOG EKLEME
+    this.addAuditLog(
+      'TRANSFER',
+      `↗️ Sevkiyat Gün Transferi: "${shipment.customerName}"`,
+      `${oldDayName} gününden ${newDayName} gününe aktarıldı. ${reason ? 'Transfer Sebebi: ' + reason : ''}`,
+      shipment.representative
+    );
+
     this.saveData(true, 'TRANSFER', { shipment, transferRecordCard });
     this.render();
 
@@ -534,12 +688,14 @@ class ShipmentApp {
 
     if (noteText) {
       this.weeklyNotes[currentWeekKey] = noteText;
+      this.addAuditLog('NOTE', `📢 Sevkiyat Duyuru Notu Güncellendi`, `Yayınlanan Not: "${noteText}"`, 'Yönetici');
       this.showToast('Sevkiyat Notu Kaydedildi', 'Haftalık duyuru notu canlı olarak yayınlandı.');
       if (window.syncManager && window.syncManager.audioEnabled) {
         window.syncManager.speakText(`Yeni sevkiyat notu yayınlandı: ${noteText}`);
       }
     } else {
       delete this.weeklyNotes[currentWeekKey];
+      this.addAuditLog('NOTE', `📢 Sevkiyat Duyuru Notu Kaldırıldı`, `Duyuru notu silindi.`, 'Yönetici');
       this.showToast('Sevkiyat Notu Silindi', 'Haftalık duyuru notu kaldırıldı.');
     }
 
@@ -553,6 +709,7 @@ class ShipmentApp {
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
     if (confirm('Bu haftaya ait sevkiyat duyuru notunu silmek istediğinizden emin misiniz?')) {
       delete this.weeklyNotes[currentWeekKey];
+      this.addAuditLog('NOTE', `📢 Sevkiyat Duyuru Notu Temizlendi`, `Not temizlendi.`, 'Yönetici');
       this.saveData(true, 'UPDATE_NOTE', { weekKey: currentWeekKey, note: '' });
       this.renderWeeklyNoteBanner();
       this.showToast('Not Kaldırıldı', 'Duyuru notu kaldırıldı.');
@@ -613,6 +770,7 @@ class ShipmentApp {
 
     this.representatives.push(name);
     this.newRepInput.value = '';
+    this.addAuditLog('UPDATE', `👤 Yeni Pazarlamacı Eklendi`, `Temsilci Listesine "${name}" eklendi.`, name);
     this.saveData(true, 'UPDATE_REPS');
     this.populateRepDropdown();
     this.renderRepList();
@@ -625,6 +783,7 @@ class ShipmentApp {
     const repName = this.representatives[index];
     if (confirm(`"${repName}" isimli temsilciyi silmek istediğinize emin misiniz?`)) {
       this.representatives.splice(index, 1);
+      this.addAuditLog('DELETE', `👤 Pazarlamacı Silindi`, `Temsilci Listesinden "${repName}" kaldırıldı.`, repName);
       this.saveData(true, 'UPDATE_REPS');
       this.populateRepDropdown();
       this.renderRepList();
@@ -759,9 +918,11 @@ class ShipmentApp {
 
     if (existingIndex > -1) {
       this.disabledDays.splice(existingIndex, 1);
+      this.addAuditLog('SERVICE', `🚫 Servis Açıldı`, `${dayName} günü tekrar sevkiyata açıldı.`, 'Yönetici');
       this.showToast('Servis Açıldı', `${dayName} günü tekrar sevkiyata açıldı.`);
     } else {
       this.disabledDays.push({ weekKey: currentWeekKey, dayOfWeek: dayIndex });
+      this.addAuditLog('SERVICE', `🚫 Araç Serviste İle Kapatıldı`, `${dayName} günü sevk alımına kapatıldı.`, 'Yönetici');
       this.showToast('Araç Serviste', `${dayName} günü için sevk alımı kapatıldı.`);
     }
 
@@ -1071,6 +1232,15 @@ class ShipmentApp {
 
     shipment.status = nextStatus;
     shipment.isNew = false;
+
+    // LOG EKLEME
+    this.addAuditLog(
+      'STATUS',
+      `🔄 Durum Güncellendi: "${shipment.customerName}"`,
+      `Sevkiyat durumu "${nextStatus}" olarak değiştirildi.`,
+      shipment.representative
+    );
+
     this.saveData(true, 'UPDATE', shipment);
     this.render();
 
@@ -1143,6 +1313,14 @@ class ShipmentApp {
           this.render();
           return;
         }
+
+        // LOG EKLEME (SÜRÜKLE BIRAK TRANSFERİ)
+        this.addAuditLog(
+          'TRANSFER',
+          `↗️ Sürükle-Bırak Gün Transferi: "${shipment.customerName}"`,
+          `${oldDayName} gününden ${newDayName} gününe taşındı.`,
+          shipment.representative
+        );
       }
 
       const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
@@ -1262,6 +1440,15 @@ class ShipmentApp {
           notes,
           weekKey: currentWeekKey
         };
+
+        // LOG EKLEME
+        this.addAuditLog(
+          'UPDATE',
+          `✏️ Sevkiyat Düzenlendi: "${customerName}"`,
+          `Sıra: ${shipmentOrder} | Temsilci: ${representative} | Durum: ${status} | Adres: ${deliveryAddress}`,
+          representative
+        );
+
         this.saveData(true, 'UPDATE', this.shipments[index]);
         this.showToast('Sevkiyat Güncellendi', `${customerName} bilgileri güncellendi.`);
       }
@@ -1282,6 +1469,15 @@ class ShipmentApp {
       };
 
       this.shipments.push(newShipment);
+
+      // LOG EKLEME
+      this.addAuditLog(
+        'ADD',
+        `➕ Yeni Sevkiyat Eklendi: "${customerName}"`,
+        `Sıra: ${shipmentOrder} | Pazarlamacı: ${representative} | Adres: ${deliveryAddress}`,
+        representative
+      );
+
       this.saveData(true, 'ADD', newShipment);
       this.showToast('Yeni Sevkiyat Eklendi', `${customerName} (${shipmentOrder}) eklendi.`);
 
@@ -1300,6 +1496,14 @@ class ShipmentApp {
     if (!shipment) return;
 
     if (confirm(`"${shipment.customerName}" sevkiyat kaydını silmek istediğinizden emin misiniz?`)) {
+      // LOG EKLEME
+      this.addAuditLog(
+        'DELETE',
+        `🗑️ Sevkiyat Silindi: "${shipment.customerName}"`,
+        `${shipment.shipmentOrder} kaydı yönetici paneli üzerinden silindi.`,
+        shipment.representative
+      );
+
       this.shipments = this.shipments.filter(s => s.id !== id);
       this.saveData(true, 'DELETE', { id: id });
       this.render();

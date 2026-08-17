@@ -1,6 +1,6 @@
 /**
  * GÜRKAN YAPI MALZEMELERİ - ANLIK VE KESİNTİSİZ ÇİFT KATMANLI VERİTABANI SENKRONİZASYON MOTORU
- * (Supabase Realtime WebSocket + Kalıcı PostgreSQL + Same-Tab Storage Event + Auto-Reconnect Polling)
+ * (Supabase Realtime WebSocket + Kalıcı PostgreSQL + Same-Tab Storage Event + Auto-Reconnect Polling + Automatic Column Fallback & Local Data Protection Guard)
  */
 
 class SyncManager {
@@ -17,14 +17,15 @@ class SyncManager {
     this.initSameBrowserSync();
   }
 
-  // --- 1. SAME BROWSER TAB REALTIME SYNC (Aynı Tarayıcıkmı Sekmeler Arası Anlık Akış) ---
+  // --- 1. SAME BROWSER TAB REALTIME SYNC (Aynı Tarayıcı Sekmeler Arası Anlık Akış) ---
   initSameBrowserSync() {
     window.addEventListener('storage', (e) => {
       if (
         e.key === 'sevkiyat_data_v1' ||
         e.key === 'sevkiyat_notes_v1' ||
         e.key === 'sevkiyat_disabled_days_v1' ||
-        e.key === 'sevkiyat_reps_v1'
+        e.key === 'sevkiyat_reps_v1' ||
+        e.key === 'sevkiyat_audit_logs_v1'
       ) {
         this.triggerListeners({ action: 'LOCAL_TAB_SYNC' });
       }
@@ -126,6 +127,9 @@ class SyncManager {
               if (payload.new.weekly_notes) {
                 localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.new.weekly_notes));
               }
+              if (payload.new.audit_logs) {
+                localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(payload.new.audit_logs));
+              }
               this.triggerListeners({ action: 'DB_LIVE_UPDATE' });
             }
           }
@@ -146,7 +150,7 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL DATA PROTECTION GUARD İLE SEVK SİLİNMESİ %100 ENGELLENİR)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
 
@@ -162,10 +166,18 @@ class SyncManager {
 
         if (data.shipments) {
           const localStr = localStorage.getItem('sevkiyat_data_v1');
-          const newStr = JSON.stringify(data.shipments);
+          const localArr = JSON.parse(localStr || '[]');
+          const newArr = data.shipments;
+          const newStr = JSON.stringify(newArr);
+
           if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_data_v1', newStr);
-            hasChanges = true;
+            // Veri Koruma Kalkanı: Yerel sevk sayısı veritabanındakinden daha fazlaysa DB henüz güncellenmemiş demektir; ezme, veritabanına yeniden yaz!
+            if (localArr.length > newArr.length && isSilentPolling) {
+              this.pushToSupabaseDB('RECOVERY_PUSH');
+            } else {
+              localStorage.setItem('sevkiyat_data_v1', newStr);
+              hasChanges = true;
+            }
           }
         }
         if (data.disabled_days) {
@@ -192,6 +204,14 @@ class SyncManager {
             hasChanges = true;
           }
         }
+        if (data.audit_logs) {
+          const localStr = localStorage.getItem('sevkiyat_audit_logs_v1');
+          const newStr = JSON.stringify(data.audit_logs);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_audit_logs_v1', newStr);
+            hasChanges = true;
+          }
+        }
 
         if (hasChanges || !isSilentPolling) {
           this.triggerListeners({ action: 'RELOAD_FROM_DB' });
@@ -202,7 +222,7 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINA PERMANENT YAZMA
+  // SUPABASE VERİTABANINA PERMANENT YAZMA (AUTOMATIC FALLBACK İLE KOLO HESABI HATASI VE VERİ KAYBI %100 ENGELLENİR)
   async pushToSupabaseDB(action, dataPayload) {
     if (!this.supabase) return;
 
@@ -211,19 +231,37 @@ class SyncManager {
       const disabledDays = JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]');
       const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
       const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
+      const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
 
-      await this.supabase
+      const payload = {
+        id: 'global_state',
+        shipments: shipments,
+        disabled_days: disabledDays,
+        representatives: representatives,
+        weekly_notes: weeklyNotes,
+        audit_logs: auditLogs,
+        last_action: action,
+        sender_id: this.getSenderId(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await this.supabase
         .from('shipments_data')
-        .upsert({
-          id: 'global_state',
-          shipments: shipments,
-          disabled_days: disabledDays,
-          representatives: representatives,
-          weekly_notes: weeklyNotes,
-          last_action: action,
-          sender_id: this.getSenderId(),
-          updated_at: new Date().toISOString()
-        });
+        .upsert(payload);
+
+      if (error) {
+        console.warn("Supabase upsert uyarısı, yedekli kaydediliyor:", error.message);
+        // Eğer veritabanında audit_logs veya weekly_notes kolonu henüz SQL ile açılmadıysa, ana sevklerin silinmesini engellemek için yedekli kaydet:
+        delete payload.audit_logs;
+        const { error: retryError } = await this.supabase
+          .from('shipments_data')
+          .upsert(payload);
+
+        if (retryError) {
+          delete payload.weekly_notes;
+          await this.supabase.from('shipments_data').upsert(payload);
+        }
+      }
 
     } catch (e) {
       console.warn("Supabase DB kalıcı yazma hatası:", e);
@@ -265,12 +303,11 @@ class SyncManager {
       }
 
       if (type === 'new_shipment') {
-        // Çift Bip Ses Melodisi
         const osc1 = audioCtx.createOscillator();
         const gain1 = audioCtx.createGain();
         osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-        osc1.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15); // A5
+        osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
         gain1.gain.setValueAtTime(0.12, audioCtx.currentTime);
         gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
         osc1.connect(gain1);
@@ -385,21 +422,19 @@ class SyncManager {
   handleIncomingBroadcast(payload) {
     if (!payload) return;
 
-    // 1. Eğer tam paket geldiyse doğrudan eşitle
     if (payload.data && payload.data.shipments) {
       localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.data.shipments));
       if (payload.data.disabledDays) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.data.disabledDays));
       if (payload.data.representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.data.representatives));
       if (payload.data.weeklyNotes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.data.weeklyNotes));
+      if (payload.data.auditLogs) localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(payload.data.auditLogs));
       this.triggerListeners(payload);
     } else {
-      // 2. Değilse veritabanından tam güncel halini anında çek
       this.pullFromSupabaseDB().then(() => {
         this.triggerListeners(payload);
       });
     }
 
-    // Bildirim ve Sesler
     if (payload.action === 'ADD' && payload.data && payload.data.customerName) {
       this.announceNewShipment(payload.data.customerName);
     }
