@@ -142,6 +142,10 @@ class SyncManager {
     }
   }
 
+  markLocalMutation() {
+    this.lastLocalMutationTime = Date.now();
+  }
+
   // 10 SANİYEDE BİR SESSİZ ARKA PLAN VERİ VERİTABANI POLINGİ (AĞ KOPMALARINA KARŞI KESİNTİSİZ KORUMA)
   startFallbackPolling() {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
@@ -150,9 +154,18 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL DATA PROTECTION GUARD İLE SEVK SİLİNMESİ %100 ENGELLENİR)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL MUTATION GUARD İLE SEVK SİLİNMESİ VEYA SÜRÜKLEME GERİ GELMESİ %100 ENGELLENİR)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
+
+    // YEREL İŞLEM KORUMA KALKANI: Yerel kullanıcı son 15 saniye (15000ms) içinde herhangi bir sürükle-bırak, silme veya ekleme yaptıysa
+    // veritabanındaki henüz işlenmemiş eski görüntünün yerel hafızayı ezmesine KESİNLİKLE İZİN VERME!
+    const timeSinceMutation = Date.now() - (this.lastLocalMutationTime || 0);
+    if (isSilentPolling && timeSinceMutation < 15000) {
+      // Ezmeyi engelle ve yereldeki en güncel veriyi veritabanına yeniden iterek senkronizasyonu garanti et!
+      this.pushToSupabaseDB('LOCAL_PROTECTION_RE_PUSH');
+      return;
+    }
 
     try {
       const { data, error } = await this.supabase
@@ -171,7 +184,7 @@ class SyncManager {
           const newStr = JSON.stringify(newArr);
 
           if (localStr !== newStr) {
-            // Veri Koruma Kalkanı: Yerel sevk sayısı veritabanındakinden daha fazlaysa DB henüz güncellenmemiş demektir; ezme, veritabanına yeniden yaz!
+            // Sevk sayısı kontrolü: Yerel sevk sayısı veritabanındakinden daha fazlaysa ezme!
             if (localArr.length > newArr.length && isSilentPolling) {
               this.pushToSupabaseDB('RECOVERY_PUSH');
             } else {
@@ -212,6 +225,14 @@ class SyncManager {
             hasChanges = true;
           }
         }
+        if (data.fuel_prices) {
+          const localStr = localStorage.getItem('sevkiyat_fuel_prices_v1');
+          const newStr = JSON.stringify(data.fuel_prices);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_fuel_prices_v1', newStr);
+            hasChanges = true;
+          }
+        }
 
         if (hasChanges || !isSilentPolling) {
           this.triggerListeners({ action: 'RELOAD_FROM_DB' });
@@ -222,8 +243,9 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINA PERMANENT YAZMA (AUTOMATIC FALLBACK İLE KOLO HESABI HATASI VE VERİ KAYBI %100 ENGELLENİR)
+  // SUPABASE VERİTABANINA PERMANENT YAZMA (AUTOMATIC FALLBACK İLE KOLON HESABI HATASI VE VERİ KAYBI %100 ENGELLENİR)
   async pushToSupabaseDB(action, dataPayload) {
+    this.markLocalMutation();
     if (!this.supabase) return;
 
     try {
@@ -232,6 +254,7 @@ class SyncManager {
       const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
       const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
       const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
+      const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{"diesel":"47.10","gasoline":"46.65"}');
 
       const payload = {
         id: 'global_state',
@@ -240,6 +263,7 @@ class SyncManager {
         representatives: representatives,
         weekly_notes: weeklyNotes,
         audit_logs: auditLogs,
+        fuel_prices: fuelPrices,
         last_action: action,
         sender_id: this.getSenderId(),
         updated_at: new Date().toISOString()
@@ -296,11 +320,12 @@ class SyncManager {
 
   playAlertSound(type = 'new_shipment') {
     if (!this.audioEnabled) return;
+
     try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      
+      const audioCtx = new AudioContext();
 
       if (type === 'new_shipment') {
         const osc1 = audioCtx.createOscillator();
@@ -405,14 +430,33 @@ class SyncManager {
 
   // --- 4. BROADCAST ANLIK İLETİŞİM MOTORU ---
   broadcast(action, data) {
-    this.pushToSupabaseDB(action, data);
+    this.markLocalMutation();
+
+    const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
+    const disabledDays = JSON.parse(localStorage.getItem('sevkiyat_disabled_days_v1') || '[]');
+    const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
+    const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
+    const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
+    const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{}');
+
+    const fullPayloadData = {
+      shipments: shipments,
+      disabledDays: disabledDays,
+      representatives: representatives,
+      weeklyNotes: weeklyNotes,
+      auditLogs: auditLogs,
+      fuelPrices: fuelPrices,
+      customPayload: data
+    };
+
+    this.pushToSupabaseDB(action, fullPayloadData);
 
     if (this.channel) {
       this.channel.send({
         type: 'broadcast',
         event: 'SHIPMENT_CHANGE',
         action: action,
-        data: data,
+        data: fullPayloadData,
         sender_id: this.getSenderId(),
         timestamp: Date.now()
       });
@@ -421,6 +465,7 @@ class SyncManager {
 
   handleIncomingBroadcast(payload) {
     if (!payload) return;
+    if (payload.sender_id === this.getSenderId()) return;
 
     if (payload.data && payload.data.shipments) {
       localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.data.shipments));
@@ -435,8 +480,9 @@ class SyncManager {
       });
     }
 
-    if (payload.action === 'ADD' && payload.data && payload.data.customerName) {
-      this.announceNewShipment(payload.data.customerName);
+    const addedCustomer = payload.data && (payload.data.customerName || (payload.data.customPayload && payload.data.customPayload.customerName));
+    if (payload.action === 'ADD' && addedCustomer) {
+      this.announceNewShipment(addedCustomer);
     }
   }
 

@@ -68,29 +68,69 @@
        2. KONTROL BAR & METRİKLER (KPI & ARA-FİLTRE)
        ========================================================================== -->
   <section class="dashboard-bar">
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-info">
-          <span class="lbl">Haftalık Toplam</span>
-          <span class="val" id="totalCount">0</span>
+    <div id="metricsDrawer" class="metrics-drawer collapsed">
+      <div class="metrics-grid">
+        <!-- 1. Lider Pazarlamacı (BAŞTA) -->
+        <div class="metric-card metric-analytic highlight-lead">
+          <div class="metric-info">
+            <span class="lbl">👤 Lider Pazarlamacı</span>
+            <span class="val text-val" id="topRepVal">Belirtilmedi</span>
+            <span class="metric-sub">Haftanın En Çok Sevk Giren Temsilcisi</span>
+          </div>
         </div>
-      </div>
-      <div class="metric-card status-pending">
-        <div class="metric-info">
-          <span class="lbl">Beklemede</span>
-          <span class="val" id="pendingCount">0</span>
+
+        <!-- 2. En Yoğun Bölge (BAŞTA) -->
+        <div class="metric-card metric-analytic highlight-lead">
+          <div class="metric-info">
+            <span class="lbl">📍 En Yoğun Bölge</span>
+            <span class="val text-val" id="topDistrictVal">Belirtilmedi</span>
+            <span class="metric-sub">En Çok Sevkiyat Yapılan İlçe</span>
+          </div>
         </div>
-      </div>
-      <div class="metric-card status-transit">
-        <div class="metric-info">
-          <span class="lbl">Hazırlanan / Yolda</span>
-          <span class="val" id="transitCount">0</span>
+
+        <!-- 3. Tamamlanma Oranı -->
+        <div class="metric-card metric-analytic">
+          <div class="metric-info">
+            <span class="lbl">📈 Tamamlanma Başarısı</span>
+            <span class="val num-val" id="completionRateVal">%0</span>
+            <span class="metric-sub">Operasyonel Verimlilik</span>
+          </div>
         </div>
-      </div>
-      <div class="metric-card status-delivered">
-        <div class="metric-info">
-          <span class="lbl">Teslim Edildi</span>
-          <span class="val" id="deliveredCount">0</span>
+
+        <!-- 4. Haftalık Toplam -->
+        <div class="metric-card">
+          <div class="metric-info">
+            <span class="lbl">📦 Haftalık Toplam</span>
+            <span class="val num-val" id="totalCount">0</span>
+            <span class="metric-sub">Planlanan Tüm Sevkler</span>
+          </div>
+        </div>
+
+        <!-- 5. Beklemede -->
+        <div class="metric-card status-pending">
+          <div class="metric-info">
+            <span class="lbl">⏳ Beklemede</span>
+            <span class="val num-val" id="pendingCount">0</span>
+            <span class="metric-sub">Yükleme Bekliyor</span>
+          </div>
+        </div>
+
+        <!-- 6. Hazırlanan / Yolda -->
+        <div class="metric-card status-transit">
+          <div class="metric-info">
+            <span class="lbl">⚡ Hazırlanan / Yolda</span>
+            <span class="val num-val" id="transitCount">0</span>
+            <span class="metric-sub">Sevkiyat Halinde</span>
+          </div>
+        </div>
+
+        <!-- 7. Teslim Edildi -->
+        <div class="metric-card status-delivered">
+          <div class="metric-info">
+            <span class="lbl">✓ Teslim Edildi</span>
+            <span class="val num-val" id="deliveredCount">0</span>
+            <span class="metric-sub">Tamamlanan Yükler</span>
+          </div>
         </div>
       </div>
     </div>
@@ -101,6 +141,9 @@
         <span id="weekTitle" class="week-title">12 - 17 Ağustos 2026</span>
         <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">►</button>
         <button id="todayWeekBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem;">Bu Hafta</button>
+        <button id="toggleMetricsDrawerBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 800; color: #2563eb; border-color: #93c5fd;" title="Özet Metrikleri ve Fiyatları Göster/Gizle">
+          📊 Özet Metrikler & Fiyatlar ▼
+        </button>
       </div>
 
       <div class="search-filter-group">

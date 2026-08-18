@@ -12,6 +12,7 @@ class ShipmentApp {
     this.representatives = [];
     this.weeklyNotes = {}; // Haftalık özel operasyonel notlar/duyurular { weekKey: noteText }
     this.auditLogs = []; // İşlem ve değişiklik denetim log kayıtları
+    this.fuelPrices = { diesel: '47.10', gasoline: '46.65' }; // Artvin / Arhavi Canlı Akaryakıt Fiyatları
     this.currentWeekStart = this.getMonday(new Date());
     this.draggedShipmentId = null;
     this.searchTerm = '';
@@ -42,6 +43,12 @@ class ShipmentApp {
     this.pendingCountEl = document.getElementById('pendingCount');
     this.transitCountEl = document.getElementById('transitCount');
     this.deliveredCountEl = document.getElementById('deliveredCount');
+    this.dieselPriceValEl = document.getElementById('dieselPriceVal');
+    this.gasolinePriceValEl = document.getElementById('gasolinePriceVal');
+    this.dieselCardBtn = document.getElementById('dieselCardBtn');
+    this.gasolineCardBtn = document.getElementById('gasolineCardBtn');
+    this.metricsDrawer = document.getElementById('metricsDrawer');
+    this.toggleMetricsDrawerBtn = document.getElementById('toggleMetricsDrawerBtn');
 
     this.searchInput = document.getElementById('searchInput');
     this.filterStatusSelect = document.getElementById('filterStatusSelect');
@@ -138,6 +145,13 @@ class ShipmentApp {
         this.auditLogs = [];
       }
 
+      const savedFuel = localStorage.getItem('sevkiyat_fuel_prices_v1');
+      if (savedFuel) {
+        this.fuelPrices = JSON.parse(savedFuel);
+      } else {
+        this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
+      }
+
       this.populateRepDropdown();
     } catch (e) {
       console.error("Veri yükleme hatası:", e);
@@ -145,6 +159,7 @@ class ShipmentApp {
       this.representatives = [...DEFAULT_REPRESENTATIVES];
       this.weeklyNotes = {};
       this.auditLogs = [];
+      this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
     }
   }
 
@@ -175,6 +190,11 @@ class ShipmentApp {
       localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(this.representatives));
       localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(this.weeklyNotes));
       localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(this.auditLogs));
+      localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(this.fuelPrices));
+
+      if (window.syncManager) {
+        window.syncManager.markLocalMutation();
+      }
 
       if (shouldBroadcast && window.syncManager) {
         window.syncManager.broadcast(actionType, dataPayload || {
@@ -182,7 +202,8 @@ class ShipmentApp {
           disabledDays: this.disabledDays,
           representatives: this.representatives,
           weeklyNotes: this.weeklyNotes,
-          auditLogs: this.auditLogs
+          auditLogs: this.auditLogs,
+          fuelPrices: this.fuelPrices
         });
       }
     } catch (e) {
@@ -373,6 +394,20 @@ class ShipmentApp {
       });
     }
 
+    if (this.toggleMetricsDrawerBtn) {
+      this.toggleMetricsDrawerBtn.addEventListener('click', () => {
+        if (!this.metricsDrawer) return;
+        const isCollapsed = this.metricsDrawer.classList.contains('collapsed');
+        if (isCollapsed) {
+          this.metricsDrawer.classList.remove('collapsed');
+          this.toggleMetricsDrawerBtn.innerHTML = '📊 Özet Metrikler & Fiyatlar ▲';
+        } else {
+          this.metricsDrawer.classList.add('collapsed');
+          this.toggleMetricsDrawerBtn.innerHTML = '📊 Özet Metrikler & Fiyatlar ▼';
+        }
+      });
+    }
+
     if (this.searchInput) {
       this.searchInput.addEventListener('input', (e) => {
         this.searchTerm = e.target.value.toLowerCase().trim();
@@ -479,6 +514,13 @@ class ShipmentApp {
           }
         });
       });
+      // Akaryakıt Fiyat Güncelleme Click Listeners
+      if (this.dieselCardBtn) {
+        this.dieselCardBtn.addEventListener('click', () => this.promptUpdateFuel('diesel'));
+      }
+      if (this.gasolineCardBtn) {
+        this.gasolineCardBtn.addEventListener('click', () => this.promptUpdateFuel('gasoline'));
+      }
     }
 
     if (this.audioToggleBtn && window.syncManager) {
@@ -845,15 +887,91 @@ class ShipmentApp {
       return itemWeekKey === currentWeekKey;
     });
 
-    const total = weekShipments.filter(s => !s.isTransferredRecord).length;
-    const pending = weekShipments.filter(s => s.status === 'Beklemede' && !s.isTransferredRecord).length;
-    const transit = weekShipments.filter(s => (s.status === 'Hazırlanıyor' || s.status === 'Yolda') && !s.isTransferredRecord).length;
-    const delivered = weekShipments.filter(s => s.status === 'Teslim Edildi' && !s.isTransferredRecord).length;
+    const activeShipments = weekShipments.filter(s => !s.isTransferredRecord);
+    const total = activeShipments.length;
+    const pending = activeShipments.filter(s => s.status === 'Beklemede').length;
+    const transit = activeShipments.filter(s => s.status === 'Hazırlanıyor' || s.status === 'Yolda').length;
+    const delivered = activeShipments.filter(s => s.status === 'Teslim Edildi').length;
+    const transferred = weekShipments.filter(s => s.isTransferredRecord).length;
+
+    // Tamamlanma Başarı Oranı (%)
+    const completionRate = total > 0 ? Math.round((delivered / total) * 100) : 0;
+
+    // En Yoğun İlçe Tespiti
+    const districtCounts = {};
+    activeShipments.forEach(s => {
+      const d = this.extractDistrict(s.deliveryAddress) || 'Belirtilmedi';
+      districtCounts[d] = (districtCounts[d] || 0) + 1;
+    });
+
+    let topDistrict = 'Yok';
+    let maxDistCount = 0;
+    for (let d in districtCounts) {
+      if (districtCounts[d] > maxDistCount) {
+        maxDistCount = districtCounts[d];
+        topDistrict = `${d} (${maxDistCount})`;
+      }
+    }
+
+    // En Yoğun Pazarlamacı Tespiti
+    const repCounts = {};
+    activeShipments.forEach(s => {
+      const r = s.representative || 'Temsilcisiz';
+      repCounts[r] = (repCounts[r] || 0) + 1;
+    });
+
+    let topRep = 'Yok';
+    let maxRepCount = 0;
+    for (let r in repCounts) {
+      if (repCounts[r] > maxRepCount) {
+        maxRepCount = repCounts[r];
+        topRep = `${r} (${maxRepCount})`;
+      }
+    }
 
     if (this.totalCountEl) this.totalCountEl.textContent = total;
     if (this.pendingCountEl) this.pendingCountEl.textContent = pending;
     if (this.transitCountEl) this.transitCountEl.textContent = transit;
     if (this.deliveredCountEl) this.deliveredCountEl.textContent = delivered;
+
+    const completionRateEl = document.getElementById('completionRateVal');
+    if (completionRateEl) completionRateEl.textContent = `%${completionRate}`;
+
+    const topDistrictEl = document.getElementById('topDistrictVal');
+    if (topDistrictEl) topDistrictEl.textContent = topDistrict;
+
+    const topRepEl = document.getElementById('topRepVal');
+    if (topRepEl) topRepEl.textContent = topRep;
+
+    const transferredCountEl = document.getElementById('transferredCountVal');
+    if (transferredCountEl) transferredCountEl.textContent = transferred;
+  }
+
+  promptUpdateFuel(type) {
+    if (this.isReadOnly) return;
+    const isDiesel = type === 'diesel';
+    const fuelName = isDiesel ? 'Motorin (Dizel)' : 'Benzin (95 Oktan)';
+    const currentPrice = isDiesel ? (this.fuelPrices.diesel || '45.40') : (this.fuelPrices.gasoline || '44.85');
+
+    const newPrice = prompt(`Güncel ${fuelName} Litre Fiyatını Giriniz (TL):`, currentPrice);
+    if (newPrice !== null && newPrice.trim() !== '') {
+      const formattedPrice = parseFloat(newPrice.replace(',', '.')).toFixed(2);
+      if (isNaN(formattedPrice) || formattedPrice <= 0) {
+        alert("Lütfen geçerli bir fiyat giriniz!");
+        return;
+      }
+
+      if (isDiesel) {
+        this.fuelPrices.diesel = formattedPrice;
+      } else {
+        this.fuelPrices.gasoline = formattedPrice;
+      }
+
+      this.addAuditLog('UPDATE', `⛽ Akaryakıt Fiyatı Güncellendi`, `${fuelName} güncel litre fiyatı ₺${formattedPrice} / Lt olarak ayarlandı.`, 'Yönetici');
+      this.saveData(true, 'UPDATE_FUEL', { fuelPrices: this.fuelPrices });
+      this.updateDashboardMetrics();
+      this.showToast('Akaryakıt Fiyatı Güncellendi', `${fuelName} fiyatı ₺${formattedPrice} / Lt olarak kaydedildi.`);
+    }
   }
 
   // HAFTALIK SEVKİYAT / BEKLEYEN YÜK DUYURU NOTU BÖLÜMÜ
@@ -961,8 +1079,8 @@ class ShipmentApp {
       dayShipments.sort((a, b) => (orderRank[a.shipmentOrder] || 99) - (orderRank[b.shipmentOrder] || 99));
 
       const activeDayShipmentsCount = dayShipments.filter(s => !s.isTransferredRecord).length;
-      const isOverCapacity = activeDayShipmentsCount > 4 && !isDayDisabled;
-      const capacityPercent = Math.min(100, Math.round((activeDayShipmentsCount / 4) * 100));
+      const isOverCapacity = activeDayShipmentsCount > 5 && !isDayDisabled;
+      const capacityPercent = Math.min(100, Math.round((activeDayShipmentsCount / 5) * 100));
 
       const colEl = document.createElement('div');
       colEl.className = `day-column ${day.isToday ? 'today' : ''} ${day.isPast ? 'past-day' : ''} ${isOverCapacity ? 'over-capacity' : ''} ${isDayDisabled ? 'is-out-of-service' : ''}`;
@@ -981,14 +1099,14 @@ class ShipmentApp {
               ` : ''}
               <button class="print-day-btn" title="${day.name} Yükleme Listesini Yazdır">🖨️</button>
               <span class="shipment-count-badge ${isOverCapacity ? 'over-capacity-badge' : ''}">
-                ${isDayDisabled ? 'SEVK YOK' : (isOverCapacity ? 'Kapasite Aşımı (' + activeDayShipmentsCount + ')' : activeDayShipmentsCount + ' Sevkiyat')}
+                ${isDayDisabled ? 'SEVK YOK' : (isOverCapacity ? 'Aşım (' + activeDayShipmentsCount + ')' : activeDayShipmentsCount + ' Sevk')}
               </span>
             </div>
           </div>
 
           ${!isDayDisabled ? `
             <div class="capacity-label">
-              <span>Kapasite Doluluk</span>
+              <span>Kapasite</span>
               <span>%${capacityPercent}</span>
             </div>
             <div class="capacity-progress-bar">
