@@ -178,10 +178,10 @@ class SyncManager {
         const dbTime = data.last_mutation_time || (data.updated_at ? new Date(data.updated_at).getTime() : 0);
         const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || '0', 10);
 
-        // KURAL 1: Yerel hafızadaki veriler veritabanından kesin olarak YENİYSEN (localTime > dbTime + 2000 ms)
-        // Ve bu cihazda son 15 saniyede aktif bir değişiklik yapıldıysa, yerel veriyi DB'ye it:
-        const timeSinceLocalMutation = Date.now() - (this.lastLocalMutationTime || 0);
-        if (localTime > dbTime + 2000 && timeSinceLocalMutation < 15000) {
+        // KURAL 1: Yerel hafızadaki veriler veritabanından YENİYSEN (localTime > dbTime + 1000 ms):
+        // Bu cihazda veritabanına henüz yazılmamış yeni işlemler var demektir. Yerel veriyi DB'ye it:
+        if (localTime > dbTime + 1000) {
+          console.log("🛡️ Yerel hafıza veritabanından daha yeni! DB güncelleniyor...");
           this.pushToSupabaseDB('RECOVERY_PUSH_LOCAL_NEWER');
           return;
         }
