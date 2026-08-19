@@ -154,7 +154,7 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL-FIRST TIMESTAMP GUARD İLE F5 YENİLEMESİNDE VERİ SİLİNMESİ %100 ENGELLENİR)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (ÇİFT YÖNLÜ ZAMAN DAMGASI İLE KAPALI CİHAZLAR AÇILINCA %100 CANLI GÜNCELLENİR)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
 
@@ -169,29 +169,20 @@ class SyncManager {
         const dbTime = data.last_mutation_time || (data.updated_at ? new Date(data.updated_at).getTime() : 0);
         const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || '0', 10);
 
-        // KESİNTİSİZ LOKAL KORUMA KALKANI:
-        // Eğer yerel hafızadaki (localStorage) verilerin zamanı veritabanındakinden YENİYSE veya son 30 saniye içinde işlem yapıldıysa
-        // veritabanındaki henüz güncellenmemiş eski görüntünün yerel hafızayı ezmesine KESİNLİKLE İZİN VERME!
-        if (localTime > dbTime + 1000 || (Date.now() - localTime < 30000)) {
+        // KURAL 1: Yerel hafızadaki veriler veritabanından kesin olarak YENİYSEN (localTime > dbTime + 2000 ms)
+        // Ve bu cihazda son 15 saniyede aktif bir değişiklik yapıldıysa, yerel veriyi DB'ye it:
+        const timeSinceLocalMutation = Date.now() - (this.lastLocalMutationTime || 0);
+        if (localTime > dbTime + 2000 && timeSinceLocalMutation < 15000) {
           this.pushToSupabaseDB('RECOVERY_PUSH_LOCAL_NEWER');
           return;
         }
 
+        // KURAL 2: Veritabanı verisi yerel veriden YENİ VEYA EŞİTSE (dbTime >= localTime):
+        // Veritabanı diğer açık cihazların yaptığı en güncel veriyi içeriyordur. Unconditionally kabul et!
         let hasChanges = false;
 
         if (data.shipments) {
           const localStr = localStorage.getItem('sevkiyat_data_v1');
-          const localArr = JSON.parse(localStr || '[]');
-          const newArr = data.shipments;
-          const newStr = JSON.stringify(newArr);
-
-          if (localStr !== newStr) {
-            // Sevk sayısı kontrolü: Yerel sevk sayısı veritabanındakinden daha fazlaysa ezme!
-            if (localArr.length > newArr.length && isSilentPolling) {
-              this.pushToSupabaseDB('RECOVERY_PUSH');
-            } else {
-              localStorage.setItem('sevkiyat_data_v1', newStr);
-              hasChanges = true;
             }
           }
         }
@@ -234,6 +225,11 @@ class SyncManager {
             localStorage.setItem('sevkiyat_fuel_prices_v1', newStr);
             hasChanges = true;
           }
+        }
+
+        if (dbTime > 0) {
+          localStorage.setItem('sevkiyat_last_mutation_time', dbTime.toString());
+          this.lastLocalMutationTime = dbTime;
         }
 
         if (hasChanges || !isSilentPolling) {
