@@ -154,7 +154,7 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (ÇİFT YÖNLÜ ZAMAN DAMGASI İLE KAPALI CİHAZLAR AÇILINCA %100 CANLI GÜNCELLENİR)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOKAL VE KART TEMİZLEME KORUMALI)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
 
@@ -164,6 +164,15 @@ class SyncManager {
         .select('*')
         .eq('id', 'global_state')
         .single();
+
+      const localShipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
+
+      // SEED KONTROLÜ: Eğer veritabanında henüz hiç veri yoksa (veya boşsa), fakat tarayıcımızda sevkler varsa, verileri DB'ye SEED et!
+      if ((!data || !data.shipments || data.shipments.length === 0) && localShipments.length > 0) {
+        console.log("🌱 Veritabanında veri bulunamadı. Yerel veriler veritabanına aktarılıyor (Initial Seed)...");
+        this.pushToSupabaseDB('INITIAL_SEED_PUSH');
+        return;
+      }
 
       if (data && !error) {
         const dbTime = data.last_mutation_time || (data.updated_at ? new Date(data.updated_at).getTime() : 0);
@@ -177,13 +186,16 @@ class SyncManager {
           return;
         }
 
-        // KURAL 2: Veritabanı verisi yerel veriden YENİ VEYA EŞİTSE (dbTime >= localTime):
-        // Veritabanı diğer açık cihazların yaptığı en güncel veriyi içeriyordur. Unconditionally kabul et!
+        // KURAL 2: Veritabanı verisi yerel veriden YENİ VEYA EŞİTSE:
+        // Veritabanı diğer açık cihazların yaptığı en güncel veriyi içeriyordur. Kabul et!
         let hasChanges = false;
 
         if (data.shipments) {
           const localStr = localStorage.getItem('sevkiyat_data_v1');
-            }
+          const newStr = JSON.stringify(data.shipments);
+          if (localStr !== newStr) {
+            localStorage.setItem('sevkiyat_data_v1', newStr);
+            hasChanges = true;
           }
         }
         if (data.disabled_days) {
@@ -252,6 +264,7 @@ class SyncManager {
       const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
       const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
       const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
+      const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{"diesel":"47.10","gasoline":"46.65"}');
       const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || Date.now().toString(), 10);
 
       const payload = {
@@ -273,17 +286,27 @@ class SyncManager {
         .upsert(payload);
 
       if (error) {
-        console.warn("Supabase upsert uyarısı, yedekli kaydediliyor:", error.message);
-        // Eğer veritabanında audit_logs veya weekly_notes kolonu henüz SQL ile açılmadıysa, ana sevklerin silinmesini engellemek için yedekli kaydet:
-        delete payload.audit_logs;
-        const { error: retryError } = await this.supabase
+        console.warn("Supabase upsert uyarısı, minimal payload ile kaydediliyor:", error.message);
+        const minimalPayload = {
+          id: 'global_state',
+          shipments: shipments,
+          disabled_days: disabledDays,
+          representatives: representatives,
+          last_action: action,
+          sender_id: this.getSenderId(),
+          updated_at: new Date().toISOString()
+        };
+        const { error: minError } = await this.supabase
           .from('shipments_data')
-          .upsert(payload);
+          .upsert(minimalPayload);
 
-        if (retryError) {
-          delete payload.weekly_notes;
-          await this.supabase.from('shipments_data').upsert(payload);
+        if (minError) {
+          console.error("Supabase minimal upsert hatası:", minError.message);
+        } else {
+          console.log("✅ Supabase minimal payload ile başarıyla kaydedildi.");
         }
+      } else {
+        console.log("✅ Supabase tam payload ile başarıyla kaydedildi.");
       }
 
     } catch (e) {
