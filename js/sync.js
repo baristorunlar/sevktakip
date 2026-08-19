@@ -94,9 +94,10 @@ class SyncManager {
       });
 
       this.channel
-        .on('broadcast', { event: 'SHIPMENT_CHANGE' }, (payload) => {
-          if (payload.payload && payload.payload.sender_id !== this.clientId) {
-            this.handleIncomingBroadcast(payload.payload);
+        .on('broadcast', { event: 'SHIPMENT_CHANGE' }, (msg) => {
+          const payload = msg.payload || msg;
+          if (payload && payload.sender_id !== this.clientId) {
+            this.handleIncomingBroadcast(payload);
           }
         })
         .subscribe((status) => {
@@ -115,21 +116,18 @@ class SyncManager {
           { event: '*', schema: 'public', table: 'shipments_data' },
           (payload) => {
             if (payload.new && payload.new.sender_id !== this.clientId) {
-              if (payload.new.shipments) {
-                localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.new.shipments));
-              }
-              if (payload.new.disabled_days) {
-                localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.new.disabled_days));
-              }
-              if (payload.new.representatives) {
-                localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.new.representatives));
-              }
-              if (payload.new.weekly_notes) {
-                localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.new.weekly_notes));
-              }
-              if (payload.new.audit_logs) {
-                localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(payload.new.audit_logs));
-              }
+              const dbRecord = payload.new;
+              if (dbRecord.shipments) localStorage.setItem('sevkiyat_data_v1', JSON.stringify(dbRecord.shipments));
+              if (dbRecord.disabled_days) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(dbRecord.disabled_days));
+              if (dbRecord.representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(dbRecord.representatives));
+              if (dbRecord.weekly_notes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(dbRecord.weekly_notes));
+              if (dbRecord.audit_logs) localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(dbRecord.audit_logs));
+              if (dbRecord.fuel_prices) localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(dbRecord.fuel_prices));
+              
+              const remoteTime = dbRecord.last_mutation_time || (dbRecord.updated_at ? new Date(dbRecord.updated_at).getTime() : Date.now());
+              localStorage.setItem('sevkiyat_last_mutation_time', remoteTime.toString());
+              this.lastLocalMutationTime = remoteTime;
+
               this.triggerListeners({ action: 'DB_LIVE_UPDATE' });
             }
           }
@@ -435,6 +433,7 @@ class SyncManager {
 
   // --- 4. BROADCAST ANLIK İLETİŞİM MOTORU ---
   broadcast(action, data) {
+    const now = Date.now();
     this.markLocalMutation();
 
     const shipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
@@ -444,26 +443,26 @@ class SyncManager {
     const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
     const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{}');
 
-    const fullPayloadData = {
+    const broadcastPayload = {
+      action: action,
       shipments: shipments,
       disabledDays: disabledDays,
       representatives: representatives,
       weeklyNotes: weeklyNotes,
       auditLogs: auditLogs,
       fuelPrices: fuelPrices,
-      customPayload: data
+      customPayload: data,
+      sender_id: this.getSenderId(),
+      timestamp: now
     };
 
-    this.pushToSupabaseDB(action, fullPayloadData);
+    this.pushToSupabaseDB(action, broadcastPayload);
 
     if (this.channel) {
       this.channel.send({
         type: 'broadcast',
         event: 'SHIPMENT_CHANGE',
-        action: action,
-        data: fullPayloadData,
-        sender_id: this.getSenderId(),
-        timestamp: Date.now()
+        payload: broadcastPayload
       });
     }
   }
@@ -472,20 +471,35 @@ class SyncManager {
     if (!payload) return;
     if (payload.sender_id === this.getSenderId()) return;
 
-    if (payload.data && payload.data.shipments) {
-      localStorage.setItem('sevkiyat_data_v1', JSON.stringify(payload.data.shipments));
-      if (payload.data.disabledDays) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(payload.data.disabledDays));
-      if (payload.data.representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(payload.data.representatives));
-      if (payload.data.weeklyNotes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(payload.data.weeklyNotes));
-      if (payload.data.auditLogs) localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(payload.data.auditLogs));
-      this.triggerListeners(payload);
+    const shipments = payload.shipments || (payload.data && payload.data.shipments);
+    if (shipments) {
+      localStorage.setItem('sevkiyat_data_v1', JSON.stringify(shipments));
+      
+      const disabledDays = payload.disabledDays || (payload.data && payload.data.disabledDays);
+      if (disabledDays) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(disabledDays));
+      
+      const representatives = payload.representatives || (payload.data && payload.data.representatives);
+      if (representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(representatives));
+      
+      const weeklyNotes = payload.weeklyNotes || (payload.data && payload.data.weeklyNotes);
+      if (weeklyNotes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(weeklyNotes));
+      
+      const auditLogs = payload.auditLogs || (payload.data && payload.data.auditLogs);
+      if (auditLogs) localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(auditLogs));
+
+      const fuelPrices = payload.fuelPrices || (payload.data && payload.data.fuelPrices);
+      if (fuelPrices) localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(fuelPrices));
+
+      const remoteTime = payload.timestamp || Date.now();
+      localStorage.setItem('sevkiyat_last_mutation_time', remoteTime.toString());
+      this.lastLocalMutationTime = remoteTime;
+
+      this.triggerListeners({ action: 'REMOTE_LIVE_UPDATE' });
     } else {
-      this.pullFromSupabaseDB().then(() => {
-        this.triggerListeners(payload);
-      });
+      this.pullFromSupabaseDB(false);
     }
 
-    const addedCustomer = payload.data && (payload.data.customerName || (payload.data.customPayload && payload.data.customPayload.customerName));
+    const addedCustomer = payload.customerName || (payload.customPayload && payload.customPayload.customerName);
     if (payload.action === 'ADD' && addedCustomer) {
       this.announceNewShipment(addedCustomer);
     }
