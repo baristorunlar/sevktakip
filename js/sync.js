@@ -154,7 +154,7 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOKAL VE KART TEMİZLEME KORUMALI)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOKAL VE GİZLİ SEKME / KART TEMİZLEME KORUMALI)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
 
@@ -165,7 +165,8 @@ class SyncManager {
         .eq('id', 'global_state')
         .single();
 
-      const localShipments = JSON.parse(localStorage.getItem('sevkiyat_data_v1') || '[]');
+      const localStr = localStorage.getItem('sevkiyat_data_v1');
+      const localShipments = JSON.parse(localStr || '[]');
 
       // SEED KONTROLÜ: Eğer veritabanında henüz hiç veri yoksa (veya boşsa), fakat tarayıcımızda sevkler varsa, verileri DB'ye SEED et!
       if ((!data || !data.shipments || data.shipments.length === 0) && localShipments.length > 0) {
@@ -174,69 +175,70 @@ class SyncManager {
         return;
       }
 
-      if (data && !error) {
+      if (data && !error && data.shipments) {
         const dbTime = data.last_mutation_time || (data.updated_at ? new Date(data.updated_at).getTime() : 0);
         const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || '0', 10);
 
-        // KURAL 1: Yerel hafızadaki veriler veritabanından YENİYSEN (localTime > dbTime + 1000 ms):
-        // Bu cihazda veritabanına henüz yazılmamış yeni işlemler var demektir. Yerel veriyi DB'ye it:
-        if (localTime > dbTime + 1000) {
+        // KURAL 1 (GİZLİ SEKME & YENİ CİHAZ KORUMA KALKANI):
+        // Eğer yerel hafızada 0 sevk varsa, fakat Veritabanında sevkler varsa (örn. Gizli sekme / Yeni cihaz / Cache temizleme):
+        // KESİNLİKLE VERİTABANINI EZME! Veritabanındaki dolu verileri doğrudan çek ve yerel hafızaya yükle!
+        if (localShipments.length === 0 && data.shipments.length > 0) {
+          console.log("📥 Gizli sekme/yeni cihaz algılandı. Veritabanındaki canlı veriler çekiliyor...");
+          localStorage.setItem('sevkiyat_data_v1', JSON.stringify(data.shipments));
+          if (data.disabled_days) localStorage.setItem('sevkiyat_disabled_days_v1', JSON.stringify(data.disabled_days));
+          if (data.representatives) localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(data.representatives));
+          if (data.weekly_notes) localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(data.weekly_notes));
+          if (data.audit_logs) localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(data.audit_logs));
+          if (data.fuel_prices) localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(data.fuel_prices));
+          
+          if (dbTime > 0) {
+            localStorage.setItem('sevkiyat_last_mutation_time', dbTime.toString());
+            this.lastLocalMutationTime = dbTime;
+          }
+          this.triggerListeners({ action: 'RELOAD_FROM_DB' });
+          return;
+        }
+
+        // KURAL 2 (YEREL İŞLEM KORUMASI):
+        // Sadece ve sadece yerel hafızada DAHA YENİ bir kullanıcı işlemi varsa VE yerelde en az 1 sevk bulunuyorsa DB'ye it:
+        if (localTime > dbTime + 1000 && localShipments.length > 0) {
           console.log("🛡️ Yerel hafıza veritabanından daha yeni! DB güncelleniyor...");
           this.pushToSupabaseDB('RECOVERY_PUSH_LOCAL_NEWER');
           return;
         }
 
-        // KURAL 2: Veritabanı verisi yerel veriden YENİ VEYA EŞİTSE:
-        // Veritabanı diğer açık cihazların yaptığı en güncel veriyi içeriyordur. Kabul et!
+        // KURAL 3: Veritabanı verisi yerel veriden YENİ VEYA EŞİTSE: Eşitle ve Güncelle
         let hasChanges = false;
 
-        if (data.shipments) {
-          const localStr = localStorage.getItem('sevkiyat_data_v1');
-          const newStr = JSON.stringify(data.shipments);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_data_v1', newStr);
-            hasChanges = true;
-          }
+        const newStr = JSON.stringify(data.shipments);
+        if (localStr !== newStr) {
+          localStorage.setItem('sevkiyat_data_v1', newStr);
+          hasChanges = true;
         }
         if (data.disabled_days) {
-          const localStr = localStorage.getItem('sevkiyat_disabled_days_v1');
-          const newStr = JSON.stringify(data.disabled_days);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_disabled_days_v1', newStr);
-            hasChanges = true;
-          }
+          const lStr = localStorage.getItem('sevkiyat_disabled_days_v1');
+          const nStr = JSON.stringify(data.disabled_days);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_disabled_days_v1', nStr); hasChanges = true; }
         }
         if (data.representatives) {
-          const localStr = localStorage.getItem('sevkiyat_reps_v1');
-          const newStr = JSON.stringify(data.representatives);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_reps_v1', newStr);
-            hasChanges = true;
-          }
+          const lStr = localStorage.getItem('sevkiyat_reps_v1');
+          const nStr = JSON.stringify(data.representatives);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_reps_v1', nStr); hasChanges = true; }
         }
         if (data.weekly_notes) {
-          const localStr = localStorage.getItem('sevkiyat_notes_v1');
-          const newStr = JSON.stringify(data.weekly_notes);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_notes_v1', newStr);
-            hasChanges = true;
-          }
+          const lStr = localStorage.getItem('sevkiyat_notes_v1');
+          const nStr = JSON.stringify(data.weekly_notes);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_notes_v1', nStr); hasChanges = true; }
         }
         if (data.audit_logs) {
-          const localStr = localStorage.getItem('sevkiyat_audit_logs_v1');
-          const newStr = JSON.stringify(data.audit_logs);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_audit_logs_v1', newStr);
-            hasChanges = true;
-          }
+          const lStr = localStorage.getItem('sevkiyat_audit_logs_v1');
+          const nStr = JSON.stringify(data.audit_logs);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_audit_logs_v1', nStr); hasChanges = true; }
         }
         if (data.fuel_prices) {
-          const localStr = localStorage.getItem('sevkiyat_fuel_prices_v1');
-          const newStr = JSON.stringify(data.fuel_prices);
-          if (localStr !== newStr) {
-            localStorage.setItem('sevkiyat_fuel_prices_v1', newStr);
-            hasChanges = true;
-          }
+          const lStr = localStorage.getItem('sevkiyat_fuel_prices_v1');
+          const nStr = JSON.stringify(data.fuel_prices);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_fuel_prices_v1', nStr); hasChanges = true; }
         }
 
         if (dbTime > 0) {

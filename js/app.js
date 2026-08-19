@@ -114,7 +114,6 @@ class ShipmentApp {
         this.shipments = JSON.parse(savedShipments);
       } else {
         this.shipments = typeof INITIAL_SHIPMENTS !== 'undefined' ? JSON.parse(JSON.stringify(INITIAL_SHIPMENTS)) : [];
-        this.saveData(false);
       }
 
       const savedDisabled = localStorage.getItem('sevkiyat_disabled_days_v1');
