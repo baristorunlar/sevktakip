@@ -113,7 +113,7 @@ class ShipmentApp {
       if (savedShipments) {
         this.shipments = JSON.parse(savedShipments);
       } else {
-        this.shipments = [];
+        this.shipments = typeof INITIAL_SHIPMENTS !== 'undefined' ? JSON.parse(JSON.stringify(INITIAL_SHIPMENTS)) : [];
         this.saveData(false);
       }
 
