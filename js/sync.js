@@ -143,7 +143,9 @@ class SyncManager {
   }
 
   markLocalMutation() {
-    this.lastLocalMutationTime = Date.now();
+    const now = Date.now();
+    this.lastLocalMutationTime = now;
+    localStorage.setItem('sevkiyat_last_mutation_time', now.toString());
   }
 
   // 10 SANİYEDE BİR SESSİZ ARKA PLAN VERİ VERİTABANI POLINGİ (AĞ KOPMALARINA KARŞI KESİNTİSİZ KORUMA)
@@ -154,18 +156,9 @@ class SyncManager {
     }, 10000);
   }
 
-  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL MUTATION GUARD İLE SEVK SİLİNMESİ VEYA SÜRÜKLEME GERİ GELMESİ %100 ENGELLENİR)
+  // SUPABASE VERİTABANINDAN TÜM VERİLERİ ÇEK (LOCAL-FIRST TIMESTAMP GUARD İLE F5 YENİLEMESİNDE VERİ SİLİNMESİ %100 ENGELLENİR)
   async pullFromSupabaseDB(isSilentPolling = false) {
     if (!this.supabase) return;
-
-    // YEREL İŞLEM KORUMA KALKANI: Yerel kullanıcı son 15 saniye (15000ms) içinde herhangi bir sürükle-bırak, silme veya ekleme yaptıysa
-    // veritabanındaki henüz işlenmemiş eski görüntünün yerel hafızayı ezmesine KESİNLİKLE İZİN VERME!
-    const timeSinceMutation = Date.now() - (this.lastLocalMutationTime || 0);
-    if (isSilentPolling && timeSinceMutation < 15000) {
-      // Ezmeyi engelle ve yereldeki en güncel veriyi veritabanına yeniden iterek senkronizasyonu garanti et!
-      this.pushToSupabaseDB('LOCAL_PROTECTION_RE_PUSH');
-      return;
-    }
 
     try {
       const { data, error } = await this.supabase
@@ -175,6 +168,17 @@ class SyncManager {
         .single();
 
       if (data && !error) {
+        const dbTime = data.last_mutation_time || (data.updated_at ? new Date(data.updated_at).getTime() : 0);
+        const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || '0', 10);
+
+        // KESİNTİSİZ LOKAL KORUMA KALKANI:
+        // Eğer yerel hafızadaki (localStorage) verilerin zamanı veritabanındakinden YENİYSE veya son 30 saniye içinde işlem yapıldıysa
+        // veritabanındaki henüz güncellenmemiş eski görüntünün yerel hafızayı ezmesine KESİNLİKLE İZİN VERME!
+        if (localTime > dbTime + 1000 || (Date.now() - localTime < 30000)) {
+          this.pushToSupabaseDB('RECOVERY_PUSH_LOCAL_NEWER');
+          return;
+        }
+
         let hasChanges = false;
 
         if (data.shipments) {
@@ -254,7 +258,7 @@ class SyncManager {
       const representatives = JSON.parse(localStorage.getItem('sevkiyat_reps_v1') || '[]');
       const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
       const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
-      const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{"diesel":"47.10","gasoline":"46.65"}');
+      const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || Date.now().toString(), 10);
 
       const payload = {
         id: 'global_state',
@@ -264,6 +268,7 @@ class SyncManager {
         weekly_notes: weeklyNotes,
         audit_logs: auditLogs,
         fuel_prices: fuelPrices,
+        last_mutation_time: localTime,
         last_action: action,
         sender_id: this.getSenderId(),
         updated_at: new Date().toISOString()
