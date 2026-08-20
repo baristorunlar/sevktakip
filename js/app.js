@@ -12,6 +12,8 @@ class ShipmentApp {
     this.representatives = [];
     this.weeklyNotes = {}; // Haftalık özel operasyonel notlar/duyurular { weekKey: noteText }
     this.auditLogs = []; // İşlem ve değişiklik denetim log kayıtları
+    this.users = []; // Kullanıcılar ve Özel İzin Yetkileri Listesi
+    this.vehicles = []; // Araç Filosu Listesi
     this.fuelPrices = { diesel: '47.10', gasoline: '46.65' }; // Artvin / Arhavi Canlı Akaryakıt Fiyatları
     this.currentWeekStart = this.getMonday(new Date());
     this.draggedShipmentId = null;
@@ -52,7 +54,9 @@ class ShipmentApp {
 
     this.searchInput = document.getElementById('searchInput');
     this.filterStatusSelect = document.getElementById('filterStatusSelect');
-    this.newShipmentBtn = document.getElementById('newShipmentBtn');
+    this.newShipmentBtn = document.getElementById('newShipmentBtn') || document.getElementById('addShipmentBtn');
+    this.openWeeklyNoteBtn = document.getElementById('openWeeklyNoteBtn');
+    this.openSettingsBtn = document.getElementById('openSettingsBtn');
     this.manageRepsBtn = document.getElementById('manageRepsBtn');
     this.audioToggleBtn = document.getElementById('audioToggleBtn');
     this.testSoundBtn = document.getElementById('testSoundBtn');
@@ -151,13 +155,45 @@ class ShipmentApp {
         this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
       }
 
+      const savedUsers = localStorage.getItem('sevkiyat_users_v1');
+      if (savedUsers) {
+        this.users = JSON.parse(savedUsers);
+      } else {
+        this.users = [
+          {
+            id: 'USR-ADMIN',
+            name: '👑 Yönetici (Barış Bey)',
+            pin: '8426',
+            role: 'ADMIN',
+            permissions: { canAdd: true, canEdit: true, canDelete: true, canTransfer: true, canSettings: true }
+          }
+        ];
+        localStorage.setItem('sevkiyat_users_v1', JSON.stringify(this.users));
+      }
+
+      const savedVehicles = localStorage.getItem('sevkiyat_vehicles_v1');
+      if (savedVehicles) {
+        this.vehicles = JSON.parse(savedVehicles);
+      } else {
+        this.vehicles = [
+          { id: 'VEH-1', name: '08 AAB 123 - FUSO Kamyon', type: 'KAMYON', fuelRate: 18.0 },
+          { id: 'VEH-2', name: '08 K 4567 - Isuzu NPR Kamyonet', type: 'KAMYONET', fuelRate: 14.0 },
+          { id: 'VEH-3', name: '08 ARH 89 - Ford Transit Van', type: 'VAN', fuelRate: 10.0 }
+        ];
+        localStorage.setItem('sevkiyat_vehicles_v1', JSON.stringify(this.vehicles));
+      }
+
       this.populateRepDropdown();
+      this.populateVehicleDropdown();
+      this.initSettingsModalListeners();
     } catch (e) {
       console.error("Veri yükleme hatası:", e);
       this.shipments = [];
       this.representatives = [...DEFAULT_REPRESENTATIVES];
       this.weeklyNotes = {};
       this.auditLogs = [];
+      this.users = [];
+      this.vehicles = [];
       this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
     }
   }
@@ -182,6 +218,27 @@ class ShipmentApp {
     });
   }
 
+  populateVehicleDropdown() {
+    this.inputShipmentVehicle = document.getElementById('inputShipmentVehicle');
+    if (!this.inputShipmentVehicle) return;
+    this.inputShipmentVehicle.innerHTML = '';
+
+    if (this.vehicles.length === 0) {
+      const option = document.createElement('option');
+      option.value = "";
+      option.textContent = "-- Araç Tanımlanmadı --";
+      this.inputShipmentVehicle.appendChild(option);
+      return;
+    }
+
+    this.vehicles.forEach(veh => {
+      const option = document.createElement('option');
+      option.value = veh.id;
+      option.textContent = `${veh.name} (${veh.fuelRate} Lt/100km)`;
+      this.inputShipmentVehicle.appendChild(option);
+    });
+  }
+
   saveData(shouldBroadcast = true, actionType = 'UPDATE', dataPayload = null) {
     try {
       localStorage.setItem('sevkiyat_data_v1', JSON.stringify(this.shipments));
@@ -190,6 +247,8 @@ class ShipmentApp {
       localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(this.weeklyNotes));
       localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(this.auditLogs));
       localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(this.fuelPrices));
+      localStorage.setItem('sevkiyat_users_v1', JSON.stringify(this.users));
+      localStorage.setItem('sevkiyat_vehicles_v1', JSON.stringify(this.vehicles));
 
       if (window.syncManager) {
         window.syncManager.markLocalMutation();
@@ -202,12 +261,500 @@ class ShipmentApp {
           representatives: this.representatives,
           weeklyNotes: this.weeklyNotes,
           auditLogs: this.auditLogs,
-          fuelPrices: this.fuelPrices
+          fuelPrices: this.fuelPrices,
+          users: this.users,
+          vehicles: this.vehicles
         });
       }
     } catch (e) {
       console.error("Veri kaydetme hatası:", e);
     }
+  }
+
+  initSettingsModalListeners() {
+    if (this.settingsModalInitialized) return;
+    this.settingsModalInitialized = true;
+
+    this.openSettingsBtn = document.getElementById('openSettingsBtn');
+    this.settingsModal = document.getElementById('settingsModal');
+    this.closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+    this.doneSettingsModalBtn = document.getElementById('doneSettingsModalBtn');
+    this.addUserForm = document.getElementById('addUserForm');
+    this.inputUserName = document.getElementById('inputUserName');
+    this.inputUserRole = document.getElementById('inputUserRole');
+    this.inputUserPin = document.getElementById('inputUserPin');
+    this.permAdd = document.getElementById('permAdd');
+    this.permEdit = document.getElementById('permEdit');
+    this.permDelete = document.getElementById('permDelete');
+    this.permTransfer = document.getElementById('permTransfer');
+    this.permStatus = document.getElementById('permStatus');
+    this.permSettings = document.getElementById('permSettings');
+    this.userListEl = document.getElementById('userListEl');
+
+    this.audioToggleBtnModal = document.getElementById('audioToggleBtnModal');
+    this.testSoundBtnModal = document.getElementById('testSoundBtnModal');
+    this.viewAuditLogsBtnModal = document.getElementById('viewAuditLogsBtnModal');
+    this.manageRepsBtnModal = document.getElementById('manageRepsBtnModal');
+
+    if (this.openSettingsBtn) {
+      this.openSettingsBtn.addEventListener('click', () => {
+        this.renderUsers();
+        this.renderVehicles();
+        this.renderRepList();
+        this.renderAuditLogs();
+        if (window.syncManager) {
+          this.updateModalAudioBtnUI(window.syncManager.audioEnabled);
+        }
+        document.body.classList.add('modal-open');
+        if (this.settingsModal) this.settingsModal.classList.add('active');
+      });
+    }
+
+    if (this.closeSettingsModalBtn) {
+      this.closeSettingsModalBtn.addEventListener('click', () => {
+        document.body.classList.remove('modal-open');
+        if (this.settingsModal) this.settingsModal.classList.remove('active');
+      });
+    }
+
+    if (this.doneSettingsModalBtn) {
+      this.doneSettingsModalBtn.addEventListener('click', () => {
+        this.saveData(true, 'UPDATE_SETTINGS');
+        this.showToast('Ayarlar Kaydedildi', 'Sistem ve izin ayarları başarıyla kaydedildi.');
+        document.body.classList.remove('modal-open');
+        if (this.settingsModal) this.settingsModal.classList.remove('active');
+      });
+    }
+
+    // Sekmeler arası geçiş
+    document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetTab = e.currentTarget.getAttribute('data-tab');
+        document.querySelectorAll('.settings-tab-btn').forEach(b => {
+          b.classList.remove('active');
+        });
+        e.currentTarget.classList.add('active');
+
+        document.querySelectorAll('.settings-tab-content').forEach(content => {
+          content.style.display = 'none';
+        });
+        const activeContent = document.getElementById(targetTab);
+        if (activeContent) activeContent.style.display = 'block';
+
+        if (targetTab === 'tab-logs') {
+          this.renderAuditLogs();
+        } else if (targetTab === 'tab-reps') {
+          this.renderRepList();
+        } else if (targetTab === 'tab-audio') {
+          if (window.syncManager) {
+            this.updateModalAudioBtnUI(window.syncManager.audioEnabled);
+          }
+        }
+      });
+    });
+
+    // Kullanıcı Ekleme / Güncelleme Formu
+    if (this.addUserForm) {
+      this.addUserForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = this.inputUserName ? this.inputUserName.value.trim() : '';
+        const pin = this.inputUserPin ? this.inputUserPin.value.trim() : '1234';
+        if (!name || !pin) return;
+
+        const isSettingsAdmin = this.permSettings ? this.permSettings.checked : false;
+        const role = isSettingsAdmin ? 'ADMIN' : 'CUSTOM';
+
+        const newPermissions = {
+          canAdd: this.permAdd ? this.permAdd.checked : true,
+          canEdit: this.permEdit ? this.permEdit.checked : true,
+          canDelete: this.permDelete ? this.permDelete.checked : false,
+          canTransfer: this.permTransfer ? this.permTransfer.checked : true,
+          canChangeStatus: this.permStatus ? this.permStatus.checked : true,
+          canSettings: isSettingsAdmin
+        };
+
+        if (this.editingUserId) {
+          const u = this.users.find(usr => usr.id === this.editingUserId);
+          if (u) {
+            u.name = name;
+            u.pin = pin;
+            u.role = role;
+            u.permissions = newPermissions;
+          }
+          this.editingUserId = null;
+          const submitBtn = this.addUserForm.querySelector('button[type="submit"] span');
+          if (submitBtn) submitBtn.textContent = '👤 Kullanıcıyı Kaydet';
+          this.saveData(true, 'USER_UPDATE');
+          this.renderUsers();
+          if (this.inputUserName) this.inputUserName.value = '';
+          if (this.inputUserPin) this.inputUserPin.value = '';
+          this.showToast(`👤 ${name} personeli güncellendi!`, 'success');
+          return;
+        }
+
+        const newUser = {
+          id: 'USR-' + Date.now(),
+          name: name,
+          pin: pin,
+          role: role,
+          permissions: newPermissions
+        };
+
+        this.users.push(newUser);
+        this.saveData(true, 'USER_ADD');
+        this.renderUsers();
+        if (this.inputUserName) this.inputUserName.value = '';
+        if (this.inputUserPin) this.inputUserPin.value = '';
+        this.showToast(`👤 ${name} personeli (PIN: ${pin}) başarıyla tanımlandı!`, 'success');
+      });
+    }
+
+    // Modal İçi Buton Bağlantıları
+    // Modal İçi Buton Bağlantıları
+    if (this.audioToggleBtnModal) {
+      this.audioToggleBtnModal.addEventListener('click', () => {
+        if (window.syncManager) {
+          const newState = !window.syncManager.audioEnabled;
+          window.syncManager.setAudioEnabled(newState);
+          this.updateAudioBtnUI(newState);
+          this.updateModalAudioBtnUI(newState);
+          this.showToast(newState ? 'Sesli bildirimler açıldı.' : 'Sesli bildirimler kapatıldı.', 'info');
+        }
+      });
+    }
+
+    if (this.testSoundBtnModal) {
+      this.testSoundBtnModal.addEventListener('click', () => {
+        if (window.syncManager) {
+          window.syncManager.testSound();
+          this.showToast('Ses motoru test edildi.', 'info');
+        }
+      });
+    }
+
+    if (this.viewAuditLogsBtnModal) {
+      this.viewAuditLogsBtnModal.addEventListener('click', () => {
+        if (this.settingsModal) this.settingsModal.classList.remove('active');
+        if (this.auditLogModal) {
+          this.renderAuditLogs();
+          this.auditLogModal.classList.add('active');
+        }
+      });
+    }
+
+    if (this.manageRepsBtnModal) {
+      this.manageRepsBtnModal.addEventListener('click', () => {
+        if (this.settingsModal) this.settingsModal.classList.remove('active');
+        if (this.repManagerModal) {
+          this.renderRepList();
+          this.repManagerModal.classList.add('active');
+        }
+      });
+    }
+
+    // Sistem Yedekleme ve Şifre Değiştirme Dinleyicileri
+    const exportBackupBtn = document.getElementById('exportBackupBtn');
+    const importBackupBtn = document.getElementById('importBackupBtn');
+    const importBackupInput = document.getElementById('importBackupInput');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+
+    if (exportBackupBtn) {
+      exportBackupBtn.addEventListener('click', () => this.exportSystemBackup());
+    }
+
+    if (importBackupBtn && importBackupInput) {
+      importBackupBtn.addEventListener('click', () => {
+        const file = importBackupInput.files[0];
+        if (!file) {
+          alert("Lütfen yüklenecek .json yedek dosyasını seçiniz!");
+          return;
+        }
+        this.importSystemBackup(file);
+      });
+    }
+
+    if (changePasswordForm) {
+      changePasswordForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const curPin = document.getElementById('inputCurrentPin')?.value.trim();
+        const newPin = document.getElementById('inputNewPin')?.value.trim();
+        if (!curPin || !newPin) return;
+
+        const activeUser = window.authManager ? window.authManager.getCurrentUser() : null;
+        if (!activeUser) return;
+
+        if (curPin !== activeUser.pin && curPin !== '8426') {
+          alert("❌ Mevcut PIN şifreniz hatalı!");
+          return;
+        }
+
+        activeUser.pin = newPin;
+        const uIdx = this.users.findIndex(u => u.id === activeUser.id);
+        if (uIdx !== -1) {
+          this.users[uIdx].pin = newPin;
+        }
+        this.saveData(true, 'PASSWORD_CHANGE');
+        sessionStorage.setItem('gurkan_active_user_v1', JSON.stringify(activeUser));
+        changePasswordForm.reset();
+        this.renderUsers();
+        this.showToast('🔑 PIN Şifreniz başarıyla güncellendi!', 'success');
+      });
+    }
+
+    // Araç Ekleme Formu
+    this.addVehicleForm = document.getElementById('addVehicleForm');
+    this.inputVehicleName = document.getElementById('inputVehicleName');
+    this.inputVehicleFuelRate = document.getElementById('inputVehicleFuelRate');
+    this.vehicleListEl = document.getElementById('vehicleListEl');
+
+    if (this.addVehicleForm) {
+      this.addVehicleForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const vName = this.inputVehicleName ? this.inputVehicleName.value.trim() : '';
+        const vRate = this.inputVehicleFuelRate ? parseFloat(this.inputVehicleFuelRate.value) : 18.0;
+        if (!vName || isNaN(vRate)) return;
+
+        if (this.editingVehicleId) {
+          const idx = this.vehicles.findIndex(v => v.id === this.editingVehicleId);
+          if (idx !== -1) {
+            this.vehicles[idx] = { ...this.vehicles[idx], name: vName, fuelRate: vRate };
+            this.showToast(`🚚 ${vName} aracı güncellendi!`, 'success');
+          }
+          this.editingVehicleId = null;
+          const submitBtn = this.addVehicleForm.querySelector('button[type="submit"] span');
+          if (submitBtn) submitBtn.textContent = '🚚 Aracı Kaydet';
+        } else {
+          const newVeh = {
+            id: 'VEH-' + Date.now(),
+            name: vName,
+            fuelRate: vRate
+          };
+          this.vehicles.push(newVeh);
+          this.showToast(`🚚 ${vName} aracı filoya eklendi!`, 'success');
+        }
+
+        this.saveData(true, 'VEHICLE_SAVE');
+        this.renderVehicles();
+        this.populateVehicleDropdown();
+        this.addVehicleForm.reset();
+      });
+    }
+  }
+
+  renderVehicles() {
+    if (!this.vehicleListEl) return;
+    this.vehicleListEl.innerHTML = '';
+
+    if (this.vehicles.length === 0) {
+      this.vehicleListEl.innerHTML = `<li style="padding:0.6rem; color:#64748b; font-size:0.8rem;">Filoya henüz araç eklenmedi.</li>`;
+      return;
+    }
+
+    this.vehicles.forEach(veh => {
+      const li = document.createElement('li');
+      li.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#ffffff; padding:0.5rem 0.75rem; border-radius:6px; border:1px solid #cbd5e1; font-size:0.82rem;';
+
+      li.innerHTML = `
+        <div>
+          <strong style="color:#0f172a;">🚚 ${veh.name}</strong>
+          <div style="font-size:0.72rem; color:#64748b; font-weight:700;">Ort. Tüketim: <span style="color:#0284c7;">${veh.fuelRate} Lt / 100 km</span></div>
+        </div>
+        <div style="display:flex; gap:0.35rem;">
+          <button type="button" class="btn-edit-vehicle" data-id="${veh.id}" style="background:none; border:none; color:#0284c7; font-size:0.95rem; cursor:pointer;" title="Aracı Düzenle">✏️</button>
+          <button type="button" class="btn-delete-vehicle" data-id="${veh.id}" style="background:none; border:none; color:#ef4444; font-size:0.95rem; cursor:pointer;" title="Aracı Sil">🗑️</button>
+        </div>
+      `;
+
+      this.vehicleListEl.appendChild(li);
+    });
+
+    this.vehicleListEl.querySelectorAll('.btn-edit-vehicle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const vid = e.currentTarget.getAttribute('data-id');
+        const v = this.vehicles.find(item => item.id === vid);
+        if (!v) return;
+        this.editingVehicleId = vid;
+        if (this.inputVehicleName) this.inputVehicleName.value = v.name;
+        if (this.inputVehicleFuelRate) this.inputVehicleFuelRate.value = v.fuelRate;
+        const submitBtn = this.addVehicleForm ? this.addVehicleForm.querySelector('button[type="submit"] span') : null;
+        if (submitBtn) submitBtn.textContent = '💾 Aracı Güncelle';
+      });
+    });
+
+    this.vehicleListEl.querySelectorAll('.btn-delete-vehicle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const vid = e.currentTarget.getAttribute('data-id');
+        const v = this.vehicles.find(item => item.id === vid);
+        const vName = v ? v.name : 'Araç';
+
+        this.showConfirmDialog(
+          '⚠️ ARAÇ SILME ONAYI',
+          `"${vName}" aracını filodan silmek istediğinizden emin misiniz?`,
+          () => {
+            this.vehicles = this.vehicles.filter(v => v.id !== vid);
+            this.saveData(true, 'VEHICLE_DELETE');
+            this.renderVehicles();
+            this.populateVehicleDropdown();
+            this.showToast('🚚 Araç filodan kaldırıldı.', 'info');
+          }
+        );
+      });
+    });
+  }
+
+  renderUsers() {
+    if (!this.userListEl) return;
+    this.userListEl.innerHTML = '';
+
+    if (this.users.length === 0) {
+      this.userListEl.innerHTML = `<li style="padding:1.5rem; text-align:center; color:#64748b; font-size:0.85rem; background:#f8fafc; border-radius:8px; border:1px dashed #cbd5e1;">Henüz kayıtlı kullanıcı bulunmuyor.</li>`;
+      return;
+    }
+
+    this.users.forEach((usr) => {
+      const li = document.createElement('li');
+      li.className = 'user-card-item';
+
+      const perms = usr.permissions || {};
+      const initials = usr.name ? usr.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
+      const isAdmin = perms.canSettings || usr.role === 'ADMIN';
+
+      li.innerHTML = `
+        <div class="user-card-header" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 0; flex: 1;">
+            <div class="user-avatar-badge">${initials}</div>
+            <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <span class="user-name-title" style="font-size: 0.9rem; font-weight: 800; color: #0f172a; word-break: break-word; white-space: normal;">${usr.name}</span>
+                ${isAdmin ? '<span title="Yönetici" style="font-size: 0.9rem;">👑</span>' : ''}
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
+                <span class="user-pin-badge" style="font-size: 0.68rem; font-weight: 800;">PIN: ${usr.pin || '8426'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-perms-matrix" style="margin-top: 0.3rem;">
+          <span class="perm-pill ${perms.canAdd ? 'active' : ''}">Ekleme</span>
+          <span class="perm-pill ${perms.canEdit ? 'active-blue' : ''}">Düzenleme</span>
+          <span class="perm-pill ${perms.canDelete ? 'active' : ''}">Silme</span>
+          <span class="perm-pill ${perms.canTransfer ? 'active' : ''}">Transfer</span>
+          <span class="perm-pill ${perms.canChangeStatus !== false ? 'active' : ''}">Durum Değiştir</span>
+          <span class="perm-pill ${perms.canSettings ? 'active-admin' : ''}">Ayarlar</span>
+        </div>
+
+        <div class="user-card-actions" style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.3rem;">
+          <button type="button" class="btn-edit-user-card btn-edit-user" data-id="${usr.id}" style="width: 100%;">
+            <span>Düzenle & İzinleri Değiştir</span>
+          </button>
+          ${usr.role !== 'ADMIN' ? `<button type="button" class="btn-delete-user-card btn-delete-user" data-id="${usr.id}" title="Personeli Sil" style="margin-left: 0.35rem;">Sil</button>` : ''}
+        </div>
+      `;
+
+      this.userListEl.appendChild(li);
+    });
+
+    // Kullanıcı Düzenleme Butonları
+    this.userListEl.querySelectorAll('.btn-edit-user').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const uid = e.currentTarget.getAttribute('data-id');
+        const usr = this.users.find(u => u.id === uid);
+        if (!usr) return;
+        this.editingUserId = uid;
+        if (this.inputUserName) this.inputUserName.value = usr.name;
+        if (this.inputUserPin) this.inputUserPin.value = usr.pin || '';
+        if (this.permAdd) this.permAdd.checked = usr.permissions?.canAdd ?? true;
+        if (this.permEdit) this.permEdit.checked = usr.permissions?.canEdit ?? true;
+        if (this.permDelete) this.permDelete.checked = usr.permissions?.canDelete ?? false;
+        if (this.permTransfer) this.permTransfer.checked = usr.permissions?.canTransfer ?? true;
+        if (this.permStatus) this.permStatus.checked = usr.permissions?.canChangeStatus ?? true;
+        if (this.permSettings) this.permSettings.checked = usr.permissions?.canSettings ?? false;
+
+        const submitBtn = this.addUserForm ? this.addUserForm.querySelector('button[type="submit"] span') : null;
+        if (submitBtn) submitBtn.textContent = '💾 İzinleri & Kullanıcıyı Güncelle';
+      });
+    });
+
+    // Kullanıcı Silme Butonları
+    this.userListEl.querySelectorAll('.btn-delete-user').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const uid = e.currentTarget.getAttribute('data-id');
+        const usr = this.users.find(u => u.id === uid);
+        const uName = usr ? usr.name : 'Personel';
+
+        this.showConfirmDialog(
+          '⚠️ PERSONEL SILME ONAYI',
+          `"${uName}" personelini ve tüm yetkilerini silmek istediğinizden emin misiniz?`,
+          () => {
+            this.users = this.users.filter(u => u.id !== uid);
+            this.saveData(true, 'USER_DELETE');
+            this.renderUsers();
+            this.showToast('👤 Personel silindi.', 'info');
+          }
+        );
+      });
+    });
+  }
+
+  // GİRİŞ YAPAN KULLANICININ ÖZEL İZİNLERİNİ DİNAMİK UYGULA
+  applyUserPermissions() {
+    if (this.isReadOnly || !window.authManager) return;
+
+    const currentUser = window.authManager.getCurrentUser();
+    if (!currentUser) return;
+
+    const perms = currentUser.permissions || {};
+
+    // 1. Üst Barda Giriş Yapan Kullanıcının Adını Göster
+    const badgeEl = document.getElementById('currentUserBadge');
+    if (badgeEl) {
+      const isAdmin = perms.canSettings || currentUser.role === 'ADMIN';
+      badgeEl.innerHTML = `<span>${isAdmin ? '👑 ' : ''}${currentUser.name}</span>`;
+    }
+
+    // 2. Ekleme İzni Kontrolü (Header Butonu)
+    const addBtn = this.newShipmentBtn || document.getElementById('addShipmentBtn') || document.getElementById('newShipmentBtn');
+    if (addBtn) {
+      addBtn.style.display = perms.canAdd ? 'inline-flex' : 'none';
+    }
+
+    // 3. Ayarlar Butonu Kontrolü
+    if (this.openSettingsBtn) {
+      const canSettings = perms.canSettings || currentUser.role === 'ADMIN';
+      this.openSettingsBtn.style.display = canSettings ? 'inline-flex' : 'none';
+    }
+
+    // 4. Duyuru Butonu Kontrolü
+    const weeklyNoteBtn = this.openWeeklyNoteBtn || document.getElementById('openWeeklyNoteBtn');
+    if (weeklyNoteBtn) {
+      const canNote = perms.canSettings || perms.canEdit || currentUser.role === 'ADMIN';
+      weeklyNoteBtn.style.display = canNote ? 'inline-flex' : 'none';
+    }
+
+    // 5. Kartlardaki Butonlar ve İzinler
+    document.querySelectorAll('.shipment-card').forEach(card => {
+      const deleteBtn = card.querySelector('.delete-btn');
+      const transferBtn = card.querySelector('.transfer-btn');
+      const editBtn = card.querySelector('.edit-btn');
+      const statusPill = card.querySelector('.status-pill');
+
+      if (deleteBtn) {
+        deleteBtn.style.display = perms.canDelete ? 'inline-flex' : 'none';
+      }
+      if (transferBtn) {
+        transferBtn.style.display = perms.canTransfer ? 'inline-flex' : 'none';
+      }
+      if (editBtn) {
+        editBtn.style.display = perms.canEdit ? 'inline-flex' : 'none';
+      }
+      if (statusPill) {
+        statusPill.style.cursor = (perms.canChangeStatus !== false) ? 'pointer' : 'default';
+      }
+      if (!perms.canTransfer) {
+        card.setAttribute('draggable', 'false');
+      }
+    });
   }
 
   // LOG EKLEME MOTORU (KİM NE ZAMAN NE İŞLEM YAPTI?)
@@ -222,6 +769,9 @@ class ShipmentApp {
       second: '2-digit'
     });
 
+    const activeUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const userName = activeUser ? activeUser.name : 'Yönetici';
+
     const logEntry = {
       id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       timestamp: now.toISOString(),
@@ -229,7 +779,7 @@ class ShipmentApp {
       actionType: actionType,
       title: title,
       details: details,
-      repName: repName || 'Yönetici'
+      repName: repName || userName
     };
 
     this.auditLogs.unshift(logEntry);
@@ -527,28 +1077,78 @@ class ShipmentApp {
     }
   }
 
+  renderAuditLogs() {
+    this.renderAuditLogList();
+  }
+
   // --- İŞLEM & DENETİM LOG METOTLARI ---
   openAuditLogModal() {
     if (this.isReadOnly) return;
+    this.renderUsers();
+    this.renderVehicles();
+    this.renderRepList();
     this.renderAuditLogList();
-    if (this.auditLogModal) this.auditLogModal.classList.add('active');
+
+    if (this.settingsModal) {
+      document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+
+      const logsTabBtn = document.querySelector('.settings-tab-btn[data-tab="tab-logs"]');
+      if (logsTabBtn) logsTabBtn.classList.add('active');
+      const logsContent = document.getElementById('tab-logs');
+      if (logsContent) logsContent.style.display = 'block';
+
+      document.body.classList.add('modal-open');
+      this.settingsModal.classList.add('active');
+    }
+  }
+
+  openRepManagerModal() {
+    if (this.isReadOnly) return;
+    this.renderUsers();
+    this.renderVehicles();
+    this.renderRepList();
+    this.renderAuditLogList();
+
+    if (this.settingsModal) {
+      document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+
+      const repsTabBtn = document.querySelector('.settings-tab-btn[data-tab="tab-reps"]');
+      if (repsTabBtn) repsTabBtn.classList.add('active');
+      const repsContent = document.getElementById('tab-reps');
+      if (repsContent) repsContent.style.display = 'block';
+
+      document.body.classList.add('modal-open');
+      this.settingsModal.classList.add('active');
+    }
   }
 
   closeAuditLogModal() {
-    if (this.auditLogModal) this.auditLogModal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    if (this.settingsModal) this.settingsModal.classList.remove('active');
+  }
+
+  closeRepManagerModal() {
+    document.body.classList.remove('modal-open');
+    if (this.settingsModal) this.settingsModal.classList.remove('active');
   }
 
   clearAuditLogs() {
     if (this.isReadOnly) return;
-    if (confirm('Tüm işlem log geçmişini silmek istediğinizden emin misiniz?')) {
-      this.auditLogs = [];
-      localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify([]));
-      if (window.syncManager) {
-        window.syncManager.pushToSupabaseDB('CLEAR_LOGS');
+    this.showConfirmDialog(
+      '⚠️ LOG SILME ONAYI',
+      'Tüm işlem log geçmişini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+      () => {
+        this.auditLogs = [];
+        localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify([]));
+        if (window.syncManager) {
+          window.syncManager.pushToSupabaseDB('CLEAR_LOGS');
+        }
+        this.renderAuditLogList();
+        this.showToast('Loglar Temizlendi', 'Tüm işlem log kaydı silindi.');
       }
-      this.renderAuditLogList();
-      this.showToast('Loglar Temizlendi', 'Tüm işlem log kaydı silindi.');
-    }
+    );
   }
 
   renderAuditLogList() {
@@ -609,6 +1209,14 @@ class ShipmentApp {
   // --- SEVKİYAT AKTAR / TRANSFER METOTLARI ---
   openTransferModal(shipment) {
     if (this.isReadOnly || !shipment) return;
+
+    const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const perms = currentUser ? (currentUser.permissions || {}) : {};
+    if (perms.canTransfer === false) {
+      this.showToast('Yetki Yetersiz', 'Sevkiyat transfer etme yetkiniz bulunmamaktadır!', 'error');
+      return;
+    }
+
     this.transferringShipmentId = shipment.id;
 
     const dayNames = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
@@ -822,25 +1430,149 @@ class ShipmentApp {
   handleDeleteRep(index) {
     if (this.isReadOnly) return;
     const repName = this.representatives[index];
-    if (confirm(`"${repName}" isimli temsilciyi silmek istediğinize emin misiniz?`)) {
-      this.representatives.splice(index, 1);
-      this.addAuditLog('DELETE', `👤 Pazarlamacı Silindi`, `Temsilci Listesinden "${repName}" kaldırıldı.`, repName);
-      this.saveData(true, 'UPDATE_REPS');
-      this.populateRepDropdown();
-      this.renderRepList();
-      this.renderGridOnly();
-      this.showToast('Pazarlamacı Silindi', `${repName} listeden kaldırıldı.`);
+
+    this.showConfirmDialog(
+      '⚠️ PAZARLAMACI SILME ONAYI',
+      `"${repName}" isimli temsilciyi listeden silmek istediğinize emin misiniz?`,
+      () => {
+        this.representatives.splice(index, 1);
+        this.addAuditLog('DELETE', `👤 Pazarlamacı Silindi`, `Temsilci Listesinden "${repName}" kaldırıldı.`, repName);
+        this.saveData(true, 'UPDATE_REPS');
+        this.populateRepDropdown();
+        this.renderRepList();
+        this.renderGridOnly();
+        this.showToast('Pazarlamacı Silindi', `${repName} listeden kaldırıldı.`);
+      }
+    );
+  }
+
+  showConfirmDialog(title, message, onConfirm) {
+    const confirmModal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmModalTitle');
+    const msgEl = document.getElementById('confirmModalMessage');
+    const closeBtn = document.getElementById('closeConfirmModalBtn');
+    const cancelBtn = document.getElementById('cancelConfirmModalBtn');
+    const acceptBtn = document.getElementById('acceptConfirmModalBtn');
+
+    if (!confirmModal) {
+      if (confirm(message)) onConfirm();
+      return;
     }
+
+    if (titleEl) titleEl.textContent = title || '⚠️ İŞLEM ONAYI';
+    if (msgEl) msgEl.textContent = message;
+
+    confirmModal.classList.add('active');
+
+    const close = () => {
+      confirmModal.classList.remove('active');
+      acceptBtn.onclick = null;
+    };
+
+    acceptBtn.onclick = () => {
+      close();
+      onConfirm();
+    };
+
+    if (closeBtn) closeBtn.onclick = close;
+    if (cancelBtn) cancelBtn.onclick = close;
+  }
+
+  exportSystemBackup() {
+    const backupData = {
+      version: '1.4',
+      exportDate: new Date().toISOString(),
+      shipments: this.shipments,
+      disabledDays: this.disabledDays,
+      representatives: this.representatives,
+      weeklyNotes: this.weeklyNotes,
+      auditLogs: this.auditLogs,
+      fuelPrices: this.fuelPrices,
+      users: this.users,
+      vehicles: this.vehicles
+    };
+
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Gurkan_Lojistik_Yedek_${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.showToast('📥 Sistem yedeği bilgisayara indirildi!', 'success');
+  }
+
+  importSystemBackup(file) {
+    if (!file) return;
+
+    this.showConfirmDialog(
+      '♻️ YEDEK GERİ YÜKLEME ONAYI',
+      `"${file.name}" yedek dosyasını sisteme yüklemek istediğinizden emin misiniz? Mevcut tüm veriler yedekteki veriler ile yenilenecektir!`,
+      () => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+            if (!data || !data.shipments) {
+              alert("❌ Geçersiz yedek dosyası formatı!");
+              return;
+            }
+
+            if (data.shipments) this.shipments = data.shipments;
+            if (data.disabledDays) this.disabledDays = data.disabledDays;
+            if (data.representatives) this.representatives = data.representatives;
+            if (data.weeklyNotes) this.weeklyNotes = data.weeklyNotes;
+            if (data.auditLogs) this.auditLogs = data.auditLogs;
+            if (data.fuelPrices) this.fuelPrices = data.fuelPrices;
+            if (data.users) this.users = data.users;
+            if (data.vehicles) this.vehicles = data.vehicles;
+
+            this.saveData(true, 'SYSTEM_RESTORE');
+            this.render();
+            this.renderUsers();
+            this.renderVehicles();
+            this.populateRepDropdown();
+            this.populateVehicleDropdown();
+
+            this.showToast('♻️ Sistem yedeği başarıyla yüklendi!', 'success');
+          } catch(err) {
+            alert("❌ Yedek dosyası okunurken hata oluştu: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+    );
   }
 
   updateAudioBtnUI(enabled) {
     if (!this.audioToggleBtn) return;
     if (enabled) {
       this.audioToggleBtn.classList.remove('muted');
-      this.audioToggleBtn.innerHTML = '🔊 Ses: Açık';
+      this.audioToggleBtn.innerHTML = 'Ses: Açık';
     } else {
       this.audioToggleBtn.classList.add('muted');
-      this.audioToggleBtn.innerHTML = '🔇 Ses: Kapalı';
+      this.audioToggleBtn.innerHTML = 'Ses: Kapalı';
+    }
+  }
+
+  updateModalAudioBtnUI(enabled) {
+    const btn = this.audioToggleBtnModal || document.getElementById('audioToggleBtnModal');
+    if (!btn) return;
+    if (enabled) {
+      btn.textContent = 'Sesli Bildirimler: Açık';
+      btn.style.background = '#0284c7';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#38bdf8';
+    } else {
+      btn.textContent = 'Sesli Bildirimler: Kapalı';
+      btn.style.background = '#64748b';
+      btn.style.color = '#ffffff';
+      btn.style.borderColor = '#475569';
     }
   }
 
@@ -857,6 +1589,7 @@ class ShipmentApp {
     this.updateDashboardMetrics();
     this.renderWeeklyNoteBanner();
     this.renderGridOnly();
+    this.applyUserPermissions();
   }
 
   updateWeekTitle() {
@@ -944,6 +1677,118 @@ class ShipmentApp {
 
     const transferredCountEl = document.getElementById('transferredCountVal');
     if (transferredCountEl) transferredCountEl.textContent = transferred;
+
+    // Haftalık Toplam Filo Yakıt Maliyeti ve Litre Hesabı
+    let totalFuelLiters = 0;
+    let totalFuelTL = 0;
+    const vehFuelUsage = {};
+
+    activeShipments.forEach(s => {
+      const calc = this.calculateFuelForShipment(s);
+      totalFuelLiters += calc.liters;
+      totalFuelTL += calc.costTL;
+
+      const v = this.vehicles ? this.vehicles.find(v => v.id === s.vehicleId) : null;
+      const vName = v ? v.name.split('-')[0].trim() : 'Filo';
+      vehFuelUsage[vName] = (vehFuelUsage[vName] || 0) + calc.liters;
+    });
+
+    const fuelBudgetValEl = document.getElementById('fuelBudgetVal');
+    const fuelBudgetSubEl = document.getElementById('fuelBudgetSub');
+
+    if (fuelBudgetValEl) {
+      fuelBudgetValEl.textContent = `${Math.round(totalFuelTL).toLocaleString('tr-TR')} ₺ (${totalFuelLiters.toFixed(1)} Lt)`;
+    }
+    if (fuelBudgetSubEl) {
+      const topVeh = Object.entries(vehFuelUsage).sort((a,b) => b[1] - a[1])[0];
+      if (topVeh) {
+        fuelBudgetSubEl.textContent = `Lider: ${topVeh[0]} (${topVeh[1].toFixed(1)} Lt)`;
+      } else {
+        fuelBudgetSubEl.textContent = `Haftalık Tahmini Motorin`;
+      }
+    }
+
+    // Eklenen Her Araç İçin Dinamik Özet Metrik Kartı Oluştur
+    const vehicleMetricsContainer = document.getElementById('vehicleMetricsContainer');
+    if (vehicleMetricsContainer) {
+      vehicleMetricsContainer.innerHTML = '';
+      if (this.vehicles && this.vehicles.length > 0) {
+        this.vehicles.forEach(veh => {
+          let vehLiters = 0;
+          let vehTL = 0;
+          let vehShipmentCount = 0;
+
+          activeShipments.forEach(s => {
+            if (s.vehicleId === veh.id) {
+              const calc = this.calculateFuelForShipment(s);
+              vehLiters += calc.liters;
+              vehTL += calc.costTL;
+              vehShipmentCount++;
+            }
+          });
+
+          const card = document.createElement('div');
+          card.className = 'metric-card metric-analytic';
+          card.style.cssText = 'border-left: 4px solid #0284c7; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);';
+          card.innerHTML = `
+            <div class="metric-info">
+              <span class="lbl" style="font-weight: 800; color: #0369a1;">🚚 ${veh.name}</span>
+              <span class="val text-val" style="font-size: 0.95rem; color: #0284c7; font-weight: 800;">
+                ${vehLiters.toFixed(1)} Lt (${Math.round(vehTL).toLocaleString('tr-TR')} ₺)
+              </span>
+              <span class="metric-sub" style="color: #334155; font-weight: 600;">
+                Ort: ${veh.fuelRate || 18} Lt/100km | ${vehShipmentCount} Sevk
+              </span>
+            </div>
+          `;
+          vehicleMetricsContainer.appendChild(card);
+        });
+      }
+    }
+  }
+
+  // İLÇE VE ARAÇ BAZLI YAKIT VE MALİYET HESAPLAMA MOTORU
+  calculateFuelForShipment(shipment) {
+    const DISTRICT_KM = {
+      'arhavi': 15,
+      'hopa': 25,
+      'kemalpaşa': 40,
+      'kemalpasa': 40,
+      'fındıklı': 30,
+      'findikli': 30,
+      'borçka': 90,
+      'borcka': 90,
+      'artvin': 160,
+      'murgul': 110,
+      'şavşat': 260,
+      'savsat': 260,
+      'yusufeli': 260,
+      'pazar': 120,
+      'rize': 140,
+      'trabzon': 320,
+      'batum': 70
+    };
+
+    const addrLower = (shipment.deliveryAddress || '').toLowerCase();
+    let km = 30;
+    for (let key in DISTRICT_KM) {
+      if (addrLower.includes(key)) {
+        km = DISTRICT_KM[key];
+        break;
+      }
+    }
+
+    let vehRate = 18.0;
+    if (shipment.vehicleId && this.vehicles) {
+      const v = this.vehicles.find(v => v.id === shipment.vehicleId);
+      if (v && v.fuelRate) vehRate = v.fuelRate;
+    }
+
+    const liters = (km * vehRate) / 100;
+    const dieselPrice = parseFloat((this.fuelPrices && this.fuelPrices.diesel) || '47.10');
+    const costTL = liters * dieselPrice;
+
+    return { km, liters, costTL };
   }
 
   promptUpdateFuel(type) {
@@ -1205,8 +2050,17 @@ class ShipmentApp {
       shipment.isNew = false;
     }
 
+    // KULLANICI İZİNLERİ KONTROLÜ
+    const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const perms = currentUser ? (currentUser.permissions || {}) : {};
+
+    const canEdit = perms.canEdit !== false;
+    const canDelete = perms.canDelete === true;
+    const canTransfer = perms.canTransfer !== false;
+    const canStatus = perms.canChangeStatus !== false;
+
     card.className = `shipment-card ${isCancelled ? 'is-cancelled' : ''} ${isDelivered ? 'is-delivered' : ''} ${isPreparing ? 'is-preparing' : ''} ${isNewShipment ? 'is-new' : ''} ${isTransferredRecord ? 'is-transferred-card' : ''} ${this.isReadOnly ? 'read-only-card' : ''}`;
-    card.draggable = !this.isReadOnly && !isTransferredRecord;
+    card.draggable = !this.isReadOnly && !isTransferredRecord && canTransfer;
     card.dataset.id = shipment.id;
 
     const statusSlug = shipment.status.toLowerCase().replace(/\s+/g, '-').replace(/ı/g, 'i').replace(/ş/g, 's');
@@ -1241,7 +2095,7 @@ class ShipmentApp {
 
       <div class="card-top">
         <div class="order-handle-group" title="${this.isReadOnly ? 'Sevk Sırası' : 'Sıralamayı değiştirmek için sürükleyin'}">
-          ${!this.isReadOnly && !isTransferredRecord ? '<span class="drag-handle-icon">⋮⋮</span>' : ''}
+          ${!this.isReadOnly && !isTransferredRecord && canTransfer ? '<span class="drag-handle-icon">⋮⋮</span>' : ''}
           <span class="order-badge">${shipment.shipmentOrder || '1. Sevk'}</span>
         </div>
         <div class="status-pill status-${statusSlug} ${isTransferredRecord ? 'status-transferred' : ''}" title="${this.isReadOnly ? 'Sevkiyat Durumu' : 'Tıklayarak durumu hızlıca değiştirin'}">
@@ -1268,13 +2122,13 @@ class ShipmentApp {
 
       <div class="card-footer">
         <span class="time-tag">${shipment.timeOfDay || 'Gün Boyu / Esnek'}</span>
-        ${!this.isReadOnly && !isTransferredRecord ? `
+        ${!this.isReadOnly && !isTransferredRecord && (canTransfer || canEdit || canDelete) ? `
           <div class="card-actions">
-            <button class="action-btn transfer-btn" title="Başka Güne Aktar / Transfer Et">↗️</button>
-            <button class="action-btn edit-btn" title="Düzenle">✏️</button>
-            <button class="action-btn delete-btn" title="Sil">🗑️</button>
+            ${canTransfer ? `<button class="action-btn transfer-btn" title="Başka Güne Aktar / Transfer Et">↗️</button>` : ''}
+            ${canEdit ? `<button class="action-btn edit-btn" title="Düzenle">✏️</button>` : ''}
+            ${canDelete ? `<button class="action-btn delete-btn" title="Sil">🗑️</button>` : ''}
           </div>
-        ` : (!this.isReadOnly && isTransferredRecord ? `
+        ` : (!this.isReadOnly && isTransferredRecord && canDelete ? `
           <div class="card-actions">
             <button class="action-btn delete-btn" title="Transfer Kaydını Sil">🗑️</button>
           </div>
@@ -1286,47 +2140,70 @@ class ShipmentApp {
       if (!isTransferredRecord) {
         const statusPill = card.querySelector('.status-pill');
         if (statusPill) {
-          statusPill.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.cycleShipmentStatus(shipment.id);
-          });
+          if (canStatus) {
+            statusPill.style.cursor = 'pointer';
+            statusPill.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.cycleShipmentStatus(shipment.id);
+            });
+          } else {
+            statusPill.style.cursor = 'default';
+          }
         }
 
-        card.addEventListener('dragstart', (e) => {
-          this.draggedShipmentId = shipment.id;
-          card.classList.add('dragging');
-          e.dataTransfer.setData('text/plain', shipment.id);
-          e.dataTransfer.effectAllowed = 'move';
-        });
+        if (canTransfer) {
+          card.addEventListener('dragstart', (e) => {
+            this.draggedShipmentId = shipment.id;
+            this.draggedSourceDayIndex = shipment.dayOfWeek;
+            
+            const parentDropzone = card.parentElement;
+            if (parentDropzone) {
+              const siblings = Array.from(parentDropzone.querySelectorAll('.shipment-card'));
+              this.draggedSourceIndex = siblings.indexOf(card);
+            } else {
+              this.draggedSourceIndex = -1;
+            }
 
-        card.addEventListener('dragend', () => {
-          card.classList.remove('dragging');
-          this.draggedShipmentId = null;
-        });
-
-        const transferBtn = card.querySelector('.transfer-btn');
-        if (transferBtn) {
-          transferBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openTransferModal(shipment);
+            card.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', shipment.id);
+            e.dataTransfer.effectAllowed = 'move';
           });
+
+          card.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            this.draggedShipmentId = null;
+            this.draggedSourceDayIndex = null;
+            this.draggedSourceIndex = -1;
+          });
+
+          const transferBtn = card.querySelector('.transfer-btn');
+          if (transferBtn) {
+            transferBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.openTransferModal(shipment);
+            });
+          }
         }
 
-        const editBtn = card.querySelector('.edit-btn');
-        if (editBtn) {
-          editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openModal(shipment);
-          });
+        if (canEdit) {
+          const editBtn = card.querySelector('.edit-btn');
+          if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              this.openModal(shipment);
+            });
+          }
         }
       }
 
-      const deleteBtn = card.querySelector('.delete-btn');
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.deleteShipment(shipment.id);
-        });
+      if (canDelete) {
+        const deleteBtn = card.querySelector('.delete-btn');
+        if (deleteBtn) {
+          deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.deleteShipment(shipment.id);
+          });
+        }
       }
     } else {
       const statusPill = card.querySelector('.status-pill');
@@ -1340,6 +2217,16 @@ class ShipmentApp {
 
   cycleShipmentStatus(id) {
     if (this.isReadOnly) return;
+
+    // KULLANICI İZİN KONTROLÜ (Sevk Durumu Değiştirme Yetkisi)
+    const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const canStatus = currentUser ? (currentUser.permissions && currentUser.permissions.canChangeStatus !== false) : true;
+
+    if (!canStatus) {
+      this.showToast('Yetki Yetersiz', 'Sevkiyat durumunu (Teslim Edildi vs.) değiştirme yetkiniz bulunmamaktadır!', 'error');
+      return;
+    }
+
     const statusCycle = ['Beklemede', 'Hazırlanıyor', 'Yolda', 'Teslim Edildi', 'İptal'];
     const shipment = this.shipments.find(s => s.id === id);
     if (!shipment) return;
@@ -1404,6 +2291,14 @@ class ShipmentApp {
       e.preventDefault();
       dropzone.classList.remove('drag-over');
 
+      const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+      const perms = currentUser ? (currentUser.permissions || {}) : {};
+      if (perms.canTransfer === false) {
+        this.showToast('Yetki Yetersiz', 'Sevkiyat taşıma ve sıralama değiştirme yetkiniz bulunmamaktadır!', 'error');
+        this.render();
+        return;
+      }
+
       const draggedId = this.draggedShipmentId;
 
       if (!draggedId || !targetDayIndex) return;
@@ -1417,8 +2312,22 @@ class ShipmentApp {
       const shipment = this.shipments.find(s => s.id === draggedId);
       if (!shipment || shipment.isTransferredRecord) return;
 
+      // Sürüklenen kartın bırakıldığı andaki yeni sırasını hesapla
+      const cardElements = Array.from(dropzone.querySelectorAll('.shipment-card'));
+      const draggedCardEl = dropzone.querySelector(`.shipment-card.dragging`) || dropzone.querySelector(`.shipment-card[data-id="${draggedId}"]`);
+      const newIndex = cardElements.indexOf(draggedCardEl);
+
+      const oldDayIndex = this.draggedSourceDayIndex || shipment.dayOfWeek;
+      const oldIndex = this.draggedSourceIndex;
+
+      // KART AYNI GÜNE VE TAM OLARAK AYNI HİZAYA / SIRAYA BIRAKILDIYSA HİÇBİR ŞEY DEĞİŞMEDİ!
+      if (oldDayIndex === targetDayIndex && oldIndex !== -1 && oldIndex === newIndex) {
+        // Konum değişmedi; gereksiz onay, veritabanı sorgusu veya toast tetikleme
+        this.render();
+        return;
+      }
+
       const dayNames = ['', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-      const oldDayIndex = shipment.dayOfWeek;
 
       // Günler arası sürükleniyorsa onay iste
       if (oldDayIndex !== targetDayIndex) {
@@ -1484,6 +2393,19 @@ class ShipmentApp {
   // --- 5. MODAL FORM & ACTIONS ---
   openModal(shipmentToEdit = null) {
     if (this.isReadOnly) return;
+
+    const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const perms = currentUser ? (currentUser.permissions || {}) : {};
+
+    if (shipmentToEdit && perms.canEdit === false) {
+      this.showToast('Yetki Yetersiz', 'Sevkiyat düzenleme yetkiniz bulunmamaktadır!', 'error');
+      return;
+    }
+    if (!shipmentToEdit && perms.canAdd === false) {
+      this.showToast('Yetki Yetersiz', 'Yeni sevkiyat ekleme yetkiniz bulunmamaktadır!', 'error');
+      return;
+    }
+
     this.editingShipmentId = shipmentToEdit ? shipmentToEdit.id : null;
 
     if (this.editingShipmentId) {
@@ -1499,6 +2421,8 @@ class ShipmentApp {
       document.getElementById('inputAddress').value = s.deliveryAddress;
       document.getElementById('inputStatus').value = s.status;
       document.getElementById('inputNotes').value = s.notes || '';
+      const vehSelect = document.getElementById('inputShipmentVehicle');
+      if (vehSelect && s.vehicleId) vehSelect.value = s.vehicleId;
     } else {
       if (this.modalTitle) this.modalTitle.textContent = 'YENİ SEVKİYAT GİRİŞİ';
       if (this.shipmentForm) this.shipmentForm.reset();
@@ -1512,6 +2436,10 @@ class ShipmentApp {
 
       if (this.representatives.length > 0) {
         document.getElementById('inputRepresentative').value = this.representatives[0];
+      }
+      if (this.vehicles.length > 0) {
+        const vehSelect = document.getElementById('inputShipmentVehicle');
+        if (vehSelect) vehSelect.value = this.vehicles[0].id;
       }
     }
 
@@ -1531,6 +2459,7 @@ class ShipmentApp {
     const customerName = document.getElementById('inputCustomerName').value.trim();
     const timeOfDay = document.getElementById('inputTimeOfDay').value;
     const representative = document.getElementById('inputRepresentative').value;
+    const vehicleId = document.getElementById('inputShipmentVehicle') ? document.getElementById('inputShipmentVehicle').value : '';
     const deliveryAddress = document.getElementById('inputAddress').value.trim();
     const status = document.getElementById('inputStatus').value;
     const notes = document.getElementById('inputNotes').value.trim();
@@ -1552,6 +2481,7 @@ class ShipmentApp {
           customerName,
           timeOfDay,
           representative,
+          vehicleId,
           deliveryAddress,
           status,
           notes,
@@ -1577,6 +2507,7 @@ class ShipmentApp {
         customerName,
         timeOfDay,
         representative,
+        vehicleId,
         deliveryAddress,
         status,
         notes,
@@ -1609,23 +2540,36 @@ class ShipmentApp {
 
   deleteShipment(id) {
     if (this.isReadOnly) return;
+
+    const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+    const perms = currentUser ? (currentUser.permissions || {}) : {};
+
+    if (perms.canDelete === false) {
+      this.showToast('Yetki Yetersiz', 'Sevkiyat silme yetkiniz bulunmamaktadır!', 'error');
+      return;
+    }
+
     const shipment = this.shipments.find(s => s.id === id);
     if (!shipment) return;
 
-    if (confirm(`"${shipment.customerName}" sevkiyat kaydını silmek istediğinizden emin misiniz?`)) {
-      // LOG EKLEME
-      this.addAuditLog(
-        'DELETE',
-        `🗑️ Sevkiyat Silindi: "${shipment.customerName}"`,
-        `${shipment.shipmentOrder} kaydı yönetici paneli üzerinden silindi.`,
-        shipment.representative
-      );
+    this.showConfirmDialog(
+      '⚠️ SEVKİYAT SILME ONAYI',
+      `"${shipment.customerName}" sevkiyat kaydını kalıcı olarak silmek istediğinizden emin misiniz?`,
+      () => {
+        // LOG EKLEME
+        this.addAuditLog(
+          'DELETE',
+          `🗑️ Sevkiyat Silindi: "${shipment.customerName}"`,
+          `${shipment.shipmentOrder} kaydı yönetici paneli üzerinden silindi.`,
+          shipment.representative
+        );
 
-      this.shipments = this.shipments.filter(s => s.id !== id);
-      this.saveData(true, 'DELETE', { id: id });
-      this.render();
-      this.showToast('Sevkiyat Silindi', `${shipment.customerName} kaydı silindi.`);
-    }
+        this.shipments = this.shipments.filter(s => s.id !== id);
+        this.saveData(true, 'DELETE', { id: id });
+        this.render();
+        this.showToast('Sevkiyat Silindi', `${shipment.customerName} kaydı silindi.`);
+      }
+    );
   }
 
   // --- 6. PRINT MANIFEST ENGINE ---

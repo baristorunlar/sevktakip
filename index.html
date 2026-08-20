@@ -25,9 +25,6 @@
         <div class="brand-titles">
           <h1>GÜRKAN YAPI MALZEMELERİ</h1>
         </div>
-        <div class="panel-mode-badge display-badge" title="Canlı Sevkiyat Bilgi ve İzleme Ekranı">
-          <span>📺 İZLEME EKRANI</span>
-        </div>
         <div class="sync-badge" title="Gerçek Zamanlı Veritabanı Senkronizasyonu Aktif">
           <span class="pulse-dot"></span>
           <span>CANLI</span>
@@ -39,14 +36,14 @@
       </div>
 
       <div class="header-actions">
-        <button id="btnOpenAdminAuth" class="btn-switch-mode admin-switch" title="Şifreli Yönetici Paneline Giriş Yapın">
-          🔑 Yönetici Paneli Girişi
+        <button id="btnOpenAdminAuth" class="btn-switch-mode admin-switch" title="Şifreli Panel Girişi Yapın">
+          Panel Girişi
         </button>
         <button id="audioToggleBtn" class="audio-toggle-btn" title="Sesli bildirimleri aç/kapat">
-          🔊 Ses: Açık
+          Ses: Açık
         </button>
         <button id="testSoundBtn" class="btn-header-tool" title="Ses motorunu test edin">
-          🔔 Ses Testi
+          Ses Testi
         </button>
       </div>
     </div>
@@ -58,7 +55,7 @@
   <section class="dashboard-bar">
     <div id="metricsDrawer" class="metrics-drawer collapsed">
       <div class="metrics-grid">
-        <!-- 1. Lider Pazarlamacı (BAŞTA) -->
+        <!-- 1. Lider Pazarlamacı -->
         <div class="metric-card metric-analytic highlight-lead">
           <div class="metric-info">
             <span class="lbl">👤 Lider Pazarlamacı</span>
@@ -67,7 +64,9 @@
           </div>
         </div>
 
-        <!-- 2. En Yoğun Bölge (BAŞTA) -->
+
+
+        <!-- 3. En Yoğun Bölge -->
         <div class="metric-card metric-analytic highlight-lead">
           <div class="metric-info">
             <span class="lbl">📍 En Yoğun Bölge</span>
@@ -76,7 +75,7 @@
           </div>
         </div>
 
-        <!-- 3. Tamamlanma Oranı -->
+        <!-- 4. Tamamlanma Oranı -->
         <div class="metric-card metric-analytic">
           <div class="metric-info">
             <span class="lbl">📈 Tamamlanma Başarısı</span>
@@ -85,7 +84,7 @@
           </div>
         </div>
 
-        <!-- 4. Haftalık Toplam -->
+        <!-- 5. Haftalık Toplam -->
         <div class="metric-card">
           <div class="metric-info">
             <span class="lbl">📦 Haftalık Toplam</span>
@@ -94,7 +93,7 @@
           </div>
         </div>
 
-        <!-- 5. Beklemede -->
+        <!-- 6. Beklemede -->
         <div class="metric-card status-pending">
           <div class="metric-info">
             <span class="lbl">⏳ Beklemede</span>
@@ -103,7 +102,7 @@
           </div>
         </div>
 
-        <!-- 6. Hazırlanan / Yolda -->
+        <!-- 7. Hazırlanan / Yolda -->
         <div class="metric-card status-transit">
           <div class="metric-info">
             <span class="lbl">⚡ Hazırlanan / Yolda</span>
@@ -112,7 +111,7 @@
           </div>
         </div>
 
-        <!-- 7. Teslim Edildi -->
+        <!-- 8. Teslim Edildi -->
         <div class="metric-card status-delivered">
           <div class="metric-info">
             <span class="lbl">✓ Teslim Edildi</span>
@@ -120,6 +119,9 @@
             <span class="metric-sub">Tamamlanan Yükler</span>
           </div>
         </div>
+
+        <!-- 9. DİNAMİK ARAÇ BAZLI METRİK KARTLARI (EN SONDA) -->
+        <div id="vehicleMetricsContainer" style="display: contents;"></div>
       </div>
     </div>
 
@@ -166,32 +168,45 @@
   </main>
 
   <!-- ==========================================================================
-       5. YÖNETİCİ PANELİ ŞİFRELİ GİRİŞ MODALİ (PIN AUTH MODAL)
+       5. KULLANICI & YÖNETİCİ ŞİFRELİ GİRİŞ MODALİ (MULTI-USER AUTH MODAL)
        ========================================================================== -->
   <div id="pinAuthModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 420px;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
-        <h2>🔒 YÖNETİCİ PANELİ GİRİŞİ</h2>
-        <button id="closePinModalBtn" class="modal-close-btn">&times;</button>
+    <div class="modal-card" style="max-width: 380px; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 40px rgba(15, 23, 42, 0.4);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 0.9rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <h2 style="font-size: 1rem; font-weight: 900; letter-spacing: 0.04em; color: #ffffff; display: flex; align-items: center; gap: 0.45rem;">
+          <span>🔐</span> PANEL GİRİŞİ
+        </h2>
+        <button id="closePinModalBtn" class="modal-close-btn" style="color: #94a3b8; font-size: 1.4rem;">&times;</button>
       </div>
       <form id="pinAuthForm">
-        <div class="modal-body" style="text-align: center; padding: 1.8rem 1.5rem;">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔑</div>
-          <h3 style="font-weight: 800; font-size: 1.05rem; color: #0f172a; margin-bottom: 0.3rem;">YÖNETİCİ GİRİŞ ŞİFRESİ</h3>
-          <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.2rem;">Yönetici paneline erişmek için 4 haneli PIN şifrenizi giriniz.</p>
-          
-          <div class="form-group" style="max-width: 240px; margin: 0 auto 1rem;">
-            <input type="password" id="pinAuthInput" placeholder="••••" maxlength="6" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.3em; font-weight: 900; min-height: 48px;" required>
+        <div class="modal-body" style="padding: 1.25rem 1.25rem 0.5rem 1.25rem; background: #ffffff;">
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="selectLoginUser" style="font-size: 0.76rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 0.3rem;">Personel</label>
+            <select id="selectLoginUser" required style="width: 100%; padding: 0.6rem 0.75rem; font-size: 0.85rem; font-weight: 700; border: 1.5px solid #cbd5e1; border-radius: 8px; background: #f8fafc; box-sizing: border-box; color: #0f172a;">
+              <!-- JS Dinamik Dolduracak -->
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.85rem;">
+            <label for="pinAuthInput" style="font-size: 0.76rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 0.3rem;">Kişisel PIN Şifresi</label>
+            <input type="password" id="pinAuthInput" placeholder="••••" inputmode="numeric" pattern="[0-9]*" maxlength="6" style="width: 100%; text-align: center; font-size: 1.4rem; letter-spacing: 0.35em; font-weight: 900; min-height: 44px; border: 1.5px solid #0284c7; border-radius: 8px; background: #ffffff; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box;" required>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.65rem;">
+            <label style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer; font-size: 0.78rem; font-weight: 700; color: #475569; user-select: none;">
+              <input type="checkbox" id="rememberMeCheckbox" style="width: 15px; height: 15px; accent-color: #0284c7; cursor: pointer;">
+              <span>Beni Hatırla</span>
+            </label>
           </div>
           
-          <div id="pinErrorMessage" style="display: none; color: #dc2626; font-size: 0.78rem; font-weight: 800; margin-bottom: 0.5rem;">
+          <div id="pinErrorMessage" style="display: none; color: #dc2626; font-size: 0.78rem; font-weight: 800; text-align: center; margin-bottom: 0.5rem; padding: 0.35rem; background: #fef2f2; border-radius: 6px; border: 1px solid #fecaca;">
             ❌ Hatalı Şifre! Lütfen tekrar deneyiniz.
           </div>
         </div>
-        <div class="modal-footer" style="justify-content: space-between;">
-          <button type="button" id="cancelPinModalBtn" class="btn-secondary">İptal</button>
-          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #f59e0b;">
-            <span>🔓 Giriş Yap</span>
+        <div class="modal-footer" style="justify-content: space-between; padding: 0.75rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+          <button type="button" id="cancelPinModalBtn" class="btn-secondary" style="padding: 0.45rem 0.9rem; border-radius: 8px; font-weight: 700; font-size: 0.8rem;">İptal</button>
+          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; border-radius: 8px; padding: 0.5rem 1.25rem; font-weight: 800; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+            <span>Giriş Yap</span>
           </button>
         </div>
       </form>

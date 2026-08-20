@@ -1,5 +1,8 @@
--- GÜRKAN YAPI MALZEMELERİ - SUPABASE %100 EKSİKSİZ TAM KURULUM KODU
--- SQL Editor'deki her şeyi silip sadece aşağıdaki kodun tamamını yapıştırın ve "RUN" butonuna basın.
+-- ==============================================================================
+-- GÜRKAN YAPI MALZEMELERİ - SUPABASE %100 EKSİKSİZ TAM KURULUM KODU (V2)
+-- Araçlar (vehicles), Kullanıcılar (users), Sevkiyatlar ve İzinlerin Tamamı Dahildir.
+-- SQL Editor'deki her şeyi silip aşağıdaki kodun tamamını yapıştırın ve "RUN" butonuna basın.
+-- ==============================================================================
 
 -- 1. Veritabanı Tablosunu Oluştur
 create table if not exists public.shipments_data (
@@ -10,6 +13,8 @@ create table if not exists public.shipments_data (
   weekly_notes jsonb,
   audit_logs jsonb,
   fuel_prices jsonb,
+  users jsonb,
+  vehicles jsonb,
   last_mutation_time bigint,
   last_action text,
   sender_id text,
@@ -22,6 +27,8 @@ alter table public.shipments_data add column if not exists disabled_days jsonb;
 alter table public.shipments_data add column if not exists weekly_notes jsonb;
 alter table public.shipments_data add column if not exists audit_logs jsonb;
 alter table public.shipments_data add column if not exists fuel_prices jsonb;
+alter table public.shipments_data add column if not exists users jsonb;
+alter table public.shipments_data add column if not exists vehicles jsonb;
 alter table public.shipments_data add column if not exists last_mutation_time bigint;
 
 -- 3. RLS Güvenlik İzinleri (Herkes Oku / Yaz)

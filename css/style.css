@@ -40,6 +40,10 @@
   padding: 0;
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-family);
   background-color: var(--slate-body);
@@ -49,7 +53,6 @@ body {
   display: flex;
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
 }
 
 /* --------------------------------------------------------------------------
@@ -59,24 +62,37 @@ body {
    1. ULTRA-COMPACT LOW-PROFILE EXECUTIVE HEADER (MAXIMUM CONTENT AREA)
    -------------------------------------------------------------------------- */
 .app-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.94) 100%);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   color: #ffffff;
-  padding: 0.45rem 1.75rem;
-  border-bottom: 2px solid var(--accent-gold);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.3);
+  padding: 0.5rem 1.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.35);
   position: sticky;
   top: 0;
   z-index: 100;
-  backdrop-filter: blur(16px);
+  transform: translateZ(0);
+}
+
+.app-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #c5a059 0%, #38bdf8 50%, #c5a059 100%);
+  opacity: 0.85;
 }
 
 .header-container {
-  max-width: 1750px;
+  max-width: 1850px;
   margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .brand-section {
@@ -87,39 +103,109 @@ body {
 }
 
 .brand-logo-wrapper {
-  width: 36px;
-  height: 36px;
-  background: #ffffff;
-  border-radius: var(--radius-sm);
-  padding: 2px;
+  position: relative;
+  width: 46px;
+  height: 46px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  padding: 3px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid var(--accent-gold);
-  box-shadow: 0 2px 8px rgba(197, 160, 89, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 
+    0 0 24px rgba(249, 115, 22, 0.6),
+    0 0 48px rgba(234, 88, 12, 0.35),
+    0 4px 16px rgba(0, 0, 0, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
   flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  animation: logoOrangeGlow 3.5s infinite alternate ease-in-out;
+}
+
+@keyframes logoOrangeGlow {
+  0% {
+    box-shadow: 
+      0 0 18px rgba(249, 115, 22, 0.45),
+      0 0 35px rgba(234, 88, 12, 0.25),
+      0 4px 14px rgba(0, 0, 0, 0.2),
+      inset 0 1px 2px rgba(255, 255, 255, 0.85);
+    border-color: rgba(255, 255, 255, 0.6);
+  }
+  100% {
+    box-shadow: 
+      0 0 32px rgba(249, 115, 22, 0.85),
+      0 0 65px rgba(234, 88, 12, 0.5),
+      0 6px 20px rgba(0, 0, 0, 0.3),
+      inset 0 1px 4px rgba(255, 255, 255, 1);
+    border-color: rgba(255, 237, 213, 0.9);
+  }
+}
+
+/* Şık dinamik kristal cam ışık parıltısı (Glossy Sheen) */
+.brand-logo-wrapper::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -70%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(
+    90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.85) 50%, 
+    transparent 100%
+  );
+  transform: rotate(25deg);
+  animation: logoShineSweep 4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+@keyframes logoShineSweep {
+  0%, 60% {
+    left: -70%;
+  }
+  100% {
+    left: 170%;
+  }
+}
+
+.brand-logo-wrapper:hover {
+  transform: scale(1.08) translateY(-1px);
+  border-color: #ffffff;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.3),
+    0 0 30px rgba(56, 189, 248, 0.6),
+    inset 0 1px 6px rgba(255, 255, 255, 1);
 }
 
 .brand-logo-img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 3px;
+  border-radius: 6px;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.12)) contrast(1.06) brightness(1.03);
 }
 
 .brand-titles h1 {
   font-size: 1.05rem;
   font-weight: 900;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: #ffffff;
   text-transform: uppercase;
   line-height: 1;
+  background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
@@ -127,16 +213,26 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 0.35rem 0.8rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.76rem;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
   font-weight: 800;
-  color: #22c55e;
+  color: #4ade80;
   letter-spacing: 0.06em;
   flex-shrink: 0;
-  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+}
+
+.live-clock-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+#liveClock {
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+  min-width: 65px;
 }
 
 .pulse-dot {
@@ -146,102 +242,69 @@ body {
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;
-  box-shadow: 0 0 10px #22c55e;
-  animation: live-pulse-dot 1.2s infinite ease-in-out;
+  box-shadow: 0 0 8px #22c55e;
+  animation: live-pulse-dot 1.5s infinite ease-in-out;
+  will-change: opacity;
 }
 
 @keyframes live-pulse-dot {
   0%, 100% {
     opacity: 1;
-    transform: scale(1);
-    box-shadow: 0 0 12px #22c55e, 0 0 20px rgba(34, 197, 94, 0.8);
   }
   50% {
-    opacity: 0.3;
-    transform: scale(0.7);
-    box-shadow: 0 0 3px #22c55e;
+    opacity: 0.35;
   }
-}
-
-.panel-mode-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.8rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.05em;
-  flex-shrink: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .panel-mode-badge.admin-badge {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  color: #ffffff;
-  border: 1px solid #f59e0b;
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.2) 0%, rgba(180, 83, 9, 0.3) 100%);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
 }
 
 .panel-mode-badge.display-badge {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #ffffff;
-  border: 1px solid #38bdf8;
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.2) 0%, rgba(3, 105, 161, 0.3) 100%);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.75rem;
 }
 
-.pin-shake {
-  animation: pin-shake-anim 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-  border-color: #dc2626 !important;
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2) !important;
-}
-
-@keyframes pin-shake-anim {
-  10%, 90% { transform: translate3d(-2px, 0, 0); }
-  20%, 80% { transform: translate3d(4px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-  40%, 60% { transform: translate3d(6px, 0, 0); }
-}
-
-/* --------------------------------------------------------------------------
-   HARMONIZED EXECUTIVE HEADER BUTTON SYSTEM
-   -------------------------------------------------------------------------- */
 .btn-switch-mode {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
   padding: 0.4rem 0.85rem;
-  border-radius: var(--radius-sm);
+  border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 800;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   min-height: 36px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
   letter-spacing: 0.02em;
 }
 
-.btn-switch-mode.admin-switch {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  color: #ffffff;
-  border: 1px solid #f59e0b;
-}
-
-.btn-switch-mode.admin-switch:hover {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-  transform: translateY(-1px);
-}
-
 .btn-switch-mode.display-switch {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #ffffff;
-  border: 1px solid #38bdf8;
+  background: rgba(14, 165, 233, 0.15) !important;
+  border: 1px solid rgba(56, 189, 248, 0.4) !important;
+  color: #7dd3fc !important;
+  border-radius: 8px !important;
 }
 
 .btn-switch-mode.display-switch:hover {
-  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.4);
-  transform: translateY(-1px);
+  background: rgba(14, 165, 233, 0.35) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35) !important;
 }
 
 .audio-toggle-btn, .btn-header-tool {
@@ -249,36 +312,61 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.08);
   color: #f1f5f9;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 0.42rem 0.8rem;
+  border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   min-height: 36px;
-  backdrop-filter: blur(4px);
-  letter-spacing: 0.01em;
+  backdrop-filter: blur(8px);
 }
 
 .audio-toggle-btn:hover, .btn-header-tool:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.35);
   color: #ffffff;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.audio-toggle-btn.muted {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.45);
-  color: #fca5a5;
+.btn-primary.highlight-add {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+  border-radius: 8px !important;
+  font-weight: 800 !important;
+  padding: 0.42rem 0.95rem !important;
+  min-height: 36px !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.btn-primary.highlight-add:hover {
+  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 6px 18px rgba(56, 189, 248, 0.45) !important;
+}
+
+.btn-header-tool.highlight-settings {
+  background: rgba(139, 92, 246, 0.18) !important;
+  border-color: rgba(167, 139, 250, 0.45) !important;
+  color: #ddd6fe !important;
+  font-weight: 800 !important;
+}
+
+.btn-header-tool.highlight-settings:hover {
+  background: rgba(139, 92, 246, 0.35) !important;
+  border-color: #a78bfa !important;
+  color: #ffffff !important;
 }
 
 .btn-header-tool.logout-btn {
-  background: rgba(239, 68, 68, 0.18);
-  border-color: rgba(239, 68, 68, 0.45);
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
   font-weight: 800;
 }
@@ -286,6 +374,19 @@ body {
 .btn-header-tool.logout-btn:hover {
   background: rgba(239, 68, 68, 0.35);
   border-color: #ef4444;
+  color: #ffffff;
+}
+
+.btn-header-tool.settings-btn {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(109, 40, 217, 0.35) 100%);
+  border-color: rgba(167, 139, 250, 0.45);
+  color: #ddd6fe;
+  font-weight: 800;
+}
+
+.btn-header-tool.settings-btn:hover {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.45) 0%, rgba(109, 40, 217, 0.55) 100%);
+  border-color: #a78bfa;
   color: #ffffff;
 }
 
@@ -1598,13 +1699,13 @@ body {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(3px);
-  z-index: 1000;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 99999 !important;
   display: flex; align-items: center; justify-content: center;
   padding: 1rem;
   opacity: 0; visibility: hidden;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
 .modal-overlay.active { opacity: 1; visibility: visible; }
@@ -1700,32 +1801,35 @@ body {
   position: absolute;
   top: 50%;
   left: 0;
-  width: 200%;
-  height: 3px;
+  width: 100%;
+  height: 4px;
   transform: translateY(-50%);
   background: repeating-linear-gradient(90deg, #fbbf24 0, #fbbf24 30px, transparent 30px, transparent 60px);
-  animation: move-highway-lines 0.9s linear infinite;
+  background-size: 60px 4px;
+  animation: move-highway-lines 0.8s linear infinite;
+  z-index: 1;
 }
 
 @keyframes move-highway-lines {
-  from { transform: translateY(-50%) translateX(0); }
-  to { transform: translateY(-50%) translateX(-60px); }
+  from { background-position: 0 0; }
+  to { background-position: -60px 0; }
 }
 
 /* İLERLEYEN MITSUBISHI FUSO KAMYON KONTEYNERİ */
 .corporate-truck-container {
   position: absolute;
-  bottom: 10px;
-  left: -260px;
+  bottom: 8px;
+  left: 0;
   display: flex;
   align-items: flex-end;
   z-index: 10;
   animation: drive-fuso-across-screen 16s linear infinite;
+  will-change: transform;
 }
 
 @keyframes drive-fuso-across-screen {
-  0% { left: -260px; }
-  100% { left: calc(100% + 260px); }
+  0% { transform: translateX(-260px); }
+  100% { transform: translateX(calc(100vw + 260px)); }
 }
 
 .fuso-vehicle-card {
@@ -2031,4 +2135,387 @@ body {
   body { background: #ffffff; color: #000000; }
   .weekly-grid { grid-template-columns: repeat(6, 1fr) !important; gap: 0.25rem !important; }
   .shipment-card { box-shadow: none !important; border: 1px solid #000000 !important; break-inside: avoid; }
+}
+
+/* --------------------------------------------------------------------------
+   AYARLAR MODALİ YUMUŞAK SEKMELİ ANIMASYON VE SABİT DÜZEN
+   -------------------------------------------------------------------------- */
+.settings-tab-content {
+  display: none;
+  animation: settingsTabFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+@keyframes settingsTabFade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   KURUMSAL AYARLAR MODALİ - RESPONSIVE ERP DÜZENİ & AKICI ANİMASYONLAR
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   SOL DİKEY YAN MENÜLÜ (SIDEBAR) AYARLAR MODALİ DÜZENİ
+   -------------------------------------------------------------------------- */
+.settings-modal-card {
+  display: flex;
+  flex-direction: column;
+  height: 650px;
+  max-height: 94vh;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.settings-modal-body-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.settings-sidebar {
+  width: 230px;
+  min-width: 210px;
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.5rem;
+  gap: 0.35rem;
+  overflow-y: auto;
+  user-select: none;
+}
+
+.settings-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  background: transparent;
+  border: none;
+  border-left: 4px solid transparent;
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, border-left-color 0.15s ease;
+  width: 100%;
+}
+
+.settings-sidebar-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.settings-sidebar-btn.active {
+  background: rgba(56, 189, 248, 0.12) !important;
+  border-left-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  font-weight: 800 !important;
+}
+
+.settings-content-area {
+  flex: 1;
+  padding: 1.25rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+  min-width: 0;
+}
+
+/* KESİNLİKLE OYNAYAMAYAN / ZIPLAMAYAN SABİT İÇERİK */
+.settings-tab-content {
+  display: none;
+  width: 100%;
+}
+
+.settings-tab-content.active {
+  display: block;
+}
+
+.settings-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .settings-modal-body-layout {
+    flex-direction: column;
+  }
+  .settings-sidebar {
+    width: 100%;
+    min-width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: none;
+    border-bottom: 1px solid #1e293b;
+    padding: 0.4rem;
+  }
+  .settings-sidebar-btn {
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 0.75rem;
+    white-space: nowrap;
+  }
+  .settings-sidebar-btn.active {
+    border-left-color: transparent !important;
+    border-bottom-color: #38bdf8 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   KİŞİYE ÖZEL İZİN YETKİLERİ MODERN KART TASARIMI
+   -------------------------------------------------------------------------- */
+.perm-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.45rem;
+  background: #f8fafc;
+  padding: 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.perm-card-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.perm-card-chip:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.perm-card-chip.full-width {
+  grid-column: span 2;
+}
+
+.perm-card-chip span.label-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.perm-card-chip input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0284c7;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   KURUMSAL PERSONEL & İZİN KARTLARI YENİ NESİL DÜZENİ
+   -------------------------------------------------------------------------- */
+.user-card-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.18s ease;
+  min-width: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.user-card-item:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+  transform: translateY(-1px);
+}
+
+.user-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.user-avatar-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7 0%, #0f172a 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.user-card-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.user-name-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-pin-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.user-perms-matrix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-top: 0.2rem;
+  min-width: 0;
+}
+
+.perm-pill {
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 1px solid #e2e8f0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  white-space: nowrap;
+}
+
+.perm-pill.active {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.perm-pill.active-blue {
+  background: #f0f9ff;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.perm-pill.active-admin {
+  background: #faf5ff;
+  color: #7e22ce;
+  border-color: #e9d5ff;
+}
+
+.user-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-edit-user-card {
+  padding: 0.28rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #f0f9ff;
+  color: #0284c7;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-edit-user-card:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.btn-delete-user-card {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-user-card:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+/* KULLANICILAR SEKME DÜZENİ VE TAŞMA KORUMASI */
+.users-tab-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.user-column-box {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#pinAuthInput {
+  caret-color: #0284c7 !important;
+}
+
+#pinAuthInput::placeholder {
+  color: #cbd5e1;
+  font-size: 1.5rem;
+  letter-spacing: 0.35em;
+  opacity: 0.8;
 }

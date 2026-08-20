@@ -240,6 +240,16 @@ class SyncManager {
           const nStr = JSON.stringify(data.fuel_prices);
           if (lStr !== nStr) { localStorage.setItem('sevkiyat_fuel_prices_v1', nStr); hasChanges = true; }
         }
+        if (data.users) {
+          const lStr = localStorage.getItem('sevkiyat_users_v1');
+          const nStr = JSON.stringify(data.users);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_users_v1', nStr); hasChanges = true; }
+        }
+        if (data.vehicles) {
+          const lStr = localStorage.getItem('sevkiyat_vehicles_v1');
+          const nStr = JSON.stringify(data.vehicles);
+          if (lStr !== nStr) { localStorage.setItem('sevkiyat_vehicles_v1', nStr); hasChanges = true; }
+        }
 
         if (dbTime > 0) {
           localStorage.setItem('sevkiyat_last_mutation_time', dbTime.toString());
@@ -255,8 +265,16 @@ class SyncManager {
     }
   }
 
-  // SUPABASE VERİTABANINA PERMANENT YAZMA (AUTOMATIC FALLBACK İLE KOLON HESABI HATASI VE VERİ KAYBI %100 ENGELLENİR)
+  // SUPABASE VERİTABANINA PERMANENT YAZMA (SALT-OKUNUR GÜVENLİK KALKANI İLE KARIŞIKLIK %100 ENGELLENİR)
   async pushToSupabaseDB(action, dataPayload) {
+    // GÜVENLİK KİLİDİ: Eğer izleme ekranı ise (mode-display / index.html) veya PIN ile oturum açılmamışsa, DB'ye ezme yaptırma!
+    const isDisplayPage = document.body.classList.contains('mode-display') || window.location.pathname.includes('index.html') || window.location.pathname.includes('display.html');
+    const isAuth = window.authManager ? window.authManager.isAuthenticated() : true;
+    if (isDisplayPage && !isAuth) {
+      console.warn("🛡️ İzleme ekranı / yetkisiz oturumda DB yazma engellendi (Strict Read-Only Mode).");
+      return;
+    }
+
     this.markLocalMutation();
     if (!this.supabase) return;
 
@@ -267,6 +285,8 @@ class SyncManager {
       const weeklyNotes = JSON.parse(localStorage.getItem('sevkiyat_notes_v1') || '{}');
       const auditLogs = JSON.parse(localStorage.getItem('sevkiyat_audit_logs_v1') || '[]');
       const fuelPrices = JSON.parse(localStorage.getItem('sevkiyat_fuel_prices_v1') || '{"diesel":"47.10","gasoline":"46.65"}');
+      const users = JSON.parse(localStorage.getItem('sevkiyat_users_v1') || '[]');
+      const vehicles = JSON.parse(localStorage.getItem('sevkiyat_vehicles_v1') || '[]');
       const localTime = parseInt(localStorage.getItem('sevkiyat_last_mutation_time') || Date.now().toString(), 10);
 
       const payload = {
@@ -277,6 +297,8 @@ class SyncManager {
         weekly_notes: weeklyNotes,
         audit_logs: auditLogs,
         fuel_prices: fuelPrices,
+        users: users,
+        vehicles: vehicles,
         last_mutation_time: localTime,
         last_action: action,
         sender_id: this.getSenderId(),
