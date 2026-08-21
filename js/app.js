@@ -733,6 +733,9 @@ class ShipmentApp {
     }
 
     // 5. Kartlardaki Butonlar ve İzinler
+    const isAdminUser = perms.canSettings || currentUser.role === 'ADMIN';
+    const canDeleteCard = isAdminUser || perms.canDelete !== false;
+
     document.querySelectorAll('.shipment-card').forEach(card => {
       const deleteBtn = card.querySelector('.delete-btn');
       const transferBtn = card.querySelector('.transfer-btn');
@@ -740,7 +743,7 @@ class ShipmentApp {
       const statusPill = card.querySelector('.status-pill');
 
       if (deleteBtn) {
-        deleteBtn.style.display = perms.canDelete ? 'inline-flex' : 'none';
+        deleteBtn.style.display = canDeleteCard ? 'inline-flex' : 'none';
       }
       if (transferBtn) {
         transferBtn.style.display = perms.canTransfer ? 'inline-flex' : 'none';
@@ -1463,19 +1466,55 @@ class ShipmentApp {
     if (msgEl) msgEl.textContent = message;
 
     confirmModal.classList.add('active');
+    document.body.classList.add('modal-open');
 
     const close = () => {
       confirmModal.classList.remove('active');
-      acceptBtn.onclick = null;
+      document.body.classList.remove('modal-open');
+      if (acceptBtn) acceptBtn.onclick = null;
+      if (closeBtn) closeBtn.onclick = null;
+      if (cancelBtn) cancelBtn.onclick = null;
+      confirmModal.onclick = null;
     };
 
-    acceptBtn.onclick = () => {
-      close();
-      onConfirm();
-    };
+    if (acceptBtn) {
+      acceptBtn.onclick = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        close();
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+      };
+    }
 
-    if (closeBtn) closeBtn.onclick = close;
-    if (cancelBtn) cancelBtn.onclick = close;
+    if (closeBtn) {
+      closeBtn.onclick = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        close();
+      };
+    }
+
+    if (cancelBtn) {
+      cancelBtn.onclick = (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        close();
+      };
+    }
+
+    confirmModal.onclick = (e) => {
+      if (e.target === confirmModal) {
+        close();
+      }
+    };
   }
 
   exportSystemBackup() {
@@ -1920,7 +1959,26 @@ class ShipmentApp {
       });
 
       const orderRank = { '1. Sevk': 1, '2. Sevk': 2, '3. Sevk': 3, '4. Sevk': 4, 'Ek Sevk': 5 };
-      dayShipments.sort((a, b) => (orderRank[a.shipmentOrder] || 99) - (orderRank[b.shipmentOrder] || 99));
+      
+      dayShipments.sort((a, b) => {
+        // 1. Durum Önceliği: Aktif sevkler üstte (0), Teslim Edilenler altta (1), İptal/Aktarılanlar en dipte (2, 3)
+        const getStatusPriority = (item) => {
+          // Eğer yeni teslim edildiyse ve bekleme süresindeyse yerinde kalsın
+          if (this.recentlyDeliveredIds && this.recentlyDeliveredIds.has(item.id)) {
+            return 0;
+          }
+          if (item.isTransferredRecord) return 3;
+          if (item.status === 'İptal') return 2;
+          if (item.status === 'Teslim Edildi') return 1;
+          return 0; // Beklemede, Hazırlanıyor, Yolda (Aktif Sevkler)
+        };
+
+        const statusDiff = getStatusPriority(a) - getStatusPriority(b);
+        if (statusDiff !== 0) return statusDiff;
+
+        // 2. Kendi aralarında sevk sırasına göre sırala (1. Sevk -> 2. Sevk -> 3. Sevk...)
+        return (orderRank[a.shipmentOrder] || 99) - (orderRank[b.shipmentOrder] || 99);
+      });
 
       const activeDayShipmentsCount = dayShipments.filter(s => !s.isTransferredRecord).length;
       const isOverCapacity = activeDayShipmentsCount > 5 && !isDayDisabled;
@@ -2053,9 +2111,10 @@ class ShipmentApp {
     // KULLANICI İZİNLERİ KONTROLÜ
     const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
     const perms = currentUser ? (currentUser.permissions || {}) : {};
+    const isAdmin = (currentUser && currentUser.role === 'ADMIN') || perms.canSettings === true;
 
     const canEdit = perms.canEdit !== false;
-    const canDelete = perms.canDelete === true;
+    const canDelete = isAdmin || perms.canDelete !== false;
     const canTransfer = perms.canTransfer !== false;
     const canStatus = perms.canChangeStatus !== false;
 
@@ -2231,6 +2290,7 @@ class ShipmentApp {
     const shipment = this.shipments.find(s => s.id === id);
     if (!shipment) return;
 
+    const prevStatus = shipment.status;
     const currentIndex = statusCycle.indexOf(shipment.status);
     const nextStatus = statusCycle[(currentIndex + 1) % statusCycle.length];
 
@@ -2245,8 +2305,52 @@ class ShipmentApp {
       shipment.representative
     );
 
-    this.saveData(true, 'UPDATE', shipment);
-    this.render();
+    if (nextStatus === 'Teslim Edildi') {
+      if (!this.recentlyDeliveredIds) this.recentlyDeliveredIds = new Set();
+      this.recentlyDeliveredIds.add(id);
+
+      this.saveData(true, 'UPDATE', shipment);
+      this.render();
+
+      const cardEl = document.querySelector(`.shipment-card[data-id="${id}"]`);
+      if (cardEl) {
+        cardEl.classList.add('just-delivered-anim');
+      }
+
+      // 2.0 saniye sonra animasyonla alta kaydır
+      setTimeout(() => {
+        const cardBeforeMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
+        if (cardBeforeMove) {
+          cardBeforeMove.classList.add('moving-down-anim');
+        }
+
+        setTimeout(() => {
+          if (this.recentlyDeliveredIds) {
+            this.recentlyDeliveredIds.delete(id);
+          }
+          this.render();
+
+          const cardAfterMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
+          if (cardAfterMove) {
+            cardAfterMove.classList.add('just-delivered-anim');
+          }
+        }, 220);
+      }, 2000);
+    } else {
+      if (this.recentlyDeliveredIds) {
+        this.recentlyDeliveredIds.delete(id);
+      }
+      this.saveData(true, 'UPDATE', shipment);
+      this.render();
+
+      // Eğer Teslim Edildi veya İptal durumundan geri alındıysa yukarı akıcı kayma animasyonu uygula
+      if (prevStatus === 'Teslim Edildi' || prevStatus === 'İptal') {
+        const cardMovedUp = document.querySelector(`.shipment-card[data-id="${id}"]`);
+        if (cardMovedUp) {
+          cardMovedUp.classList.add('moving-up-anim');
+        }
+      }
+    }
 
     if (window.syncManager) {
       window.syncManager.playAlertSound('update_shipment');
@@ -2543,8 +2647,9 @@ class ShipmentApp {
 
     const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
     const perms = currentUser ? (currentUser.permissions || {}) : {};
+    const isAdmin = (currentUser && currentUser.role === 'ADMIN') || perms.canSettings === true;
 
-    if (perms.canDelete === false) {
+    if (!isAdmin && perms.canDelete === false) {
       this.showToast('Yetki Yetersiz', 'Sevkiyat silme yetkiniz bulunmamaktadır!', 'error');
       return;
     }
@@ -2553,8 +2658,8 @@ class ShipmentApp {
     if (!shipment) return;
 
     this.showConfirmDialog(
-      '⚠️ SEVKİYAT SILME ONAYI',
-      `"${shipment.customerName}" sevkiyat kaydını kalıcı olarak silmek istediğinizden emin misiniz?`,
+      '⚠️ SEVKİYAT SİLME ONAYI',
+      `"${shipment.customerName}" (${shipment.shipmentOrder || 'Sevkiyat'}) kaydını kalıcı olarak silmek istediğinizden emin misiniz?`,
       () => {
         // LOG EKLEME
         this.addAuditLog(
@@ -2567,7 +2672,7 @@ class ShipmentApp {
         this.shipments = this.shipments.filter(s => s.id !== id);
         this.saveData(true, 'DELETE', { id: id });
         this.render();
-        this.showToast('Sevkiyat Silindi', `${shipment.customerName} kaydı silindi.`);
+        this.showToast('Sevkiyat Silindi', `"${shipment.customerName}" kaydı silindi.`);
       }
     );
   }

@@ -214,7 +214,31 @@
   </div>
 
   <!-- ==========================================================================
-       6. ANLIK TOAST BİLDİRİMLERİ
+       6. TEHLİKE VE KURUMSAL İŞLEM ONAY MODALİ (CONFIRMATION MODAL)
+       ========================================================================== -->
+  <div id="confirmModal" class="modal-overlay" style="z-index: 999999 !important;">
+    <div class="modal-card" style="max-width: 420px; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); padding: 0.9rem 1.25rem; border-bottom: 1px solid #ef4444;">
+        <h2 id="confirmModalTitle" style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.02em;">⚠️ İŞLEM ONAYI</h2>
+        <button id="closeConfirmModalBtn" class="modal-close-btn" style="color: #fca5a5;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem 1.25rem; text-align: center; background: #ffffff;">
+        <div style="font-size: 2.4rem; margin-bottom: 0.6rem; color: #dc2626;">⚠️</div>
+        <p id="confirmModalMessage" style="font-size: 0.92rem; font-weight: 700; color: #1e293b; line-height: 1.5; margin: 0;">
+          Bu işlemi gerçekleştirmek istediğinizden emin misiniz?
+        </p>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between; padding: 0.85rem 1.25rem; background: #f8fafc; border-top: 1px solid #e2e8f0;">
+        <button type="button" id="cancelConfirmModalBtn" class="btn-secondary" style="padding: 0.5rem 1.1rem; font-weight: 700; font-size: 0.82rem;">İptal</button>
+        <button type="button" id="acceptConfirmModalBtn" class="btn-primary" style="background: #dc2626; border-color: #ef4444; padding: 0.5rem 1.3rem; font-weight: 800; font-size: 0.82rem;">
+          <span>Evet, Sil</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       7. ANLIK TOAST BİLDİRİMLERİ
        ========================================================================== -->
   <div id="toastContainer" class="toast-container"></div>
 
