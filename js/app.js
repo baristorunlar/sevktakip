@@ -1963,9 +1963,13 @@ class ShipmentApp {
       dayShipments.sort((a, b) => {
         // 1. Durum Önceliği: Aktif sevkler üstte (0), Teslim Edilenler altta (1), İptal/Aktarılanlar en dipte (2, 3)
         const getStatusPriority = (item) => {
-          // Eğer yeni teslim edildiyse ve bekleme süresindeyse yerinde kalsın
+          // Eğer yeni teslim edildiyse ve 5 sn bekleme süresindeyse yerinde (üstte) kalsın
           if (this.recentlyDeliveredIds && this.recentlyDeliveredIds.has(item.id)) {
             return 0;
+          }
+          // Eğer teslimden geri alındıysa ve 5 sn bekleme süresindeyse yerinde (altta) kalsın
+          if (this.recentlyRevertedIds && this.recentlyRevertedIds.has(item.id)) {
+            return 1;
           }
           if (item.isTransferredRecord) return 3;
           if (item.status === 'İptal') return 2;
@@ -2305,8 +2309,17 @@ class ShipmentApp {
       shipment.representative
     );
 
+    // Bekleyen eski timer varsa iptal et
+    if (!this.pendingMoveTimers) this.pendingMoveTimers = {};
+    if (this.pendingMoveTimers[id]) {
+      clearTimeout(this.pendingMoveTimers[id]);
+      delete this.pendingMoveTimers[id];
+    }
+    if (!this.recentlyDeliveredIds) this.recentlyDeliveredIds = new Set();
+    if (!this.recentlyRevertedIds) this.recentlyRevertedIds = new Set();
+
     if (nextStatus === 'Teslim Edildi') {
-      if (!this.recentlyDeliveredIds) this.recentlyDeliveredIds = new Set();
+      this.recentlyRevertedIds.delete(id);
       this.recentlyDeliveredIds.add(id);
 
       this.saveData(true, 'UPDATE', shipment);
@@ -2317,17 +2330,16 @@ class ShipmentApp {
         cardEl.classList.add('just-delivered-anim');
       }
 
-      // 2.0 saniye sonra animasyonla alta kaydır
-      setTimeout(() => {
+      // 5.0 saniye yerinde bekle, sonra animasyonla alta kaydır
+      this.pendingMoveTimers[id] = setTimeout(() => {
         const cardBeforeMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
         if (cardBeforeMove) {
           cardBeforeMove.classList.add('moving-down-anim');
         }
 
         setTimeout(() => {
-          if (this.recentlyDeliveredIds) {
-            this.recentlyDeliveredIds.delete(id);
-          }
+          this.recentlyDeliveredIds.delete(id);
+          delete this.pendingMoveTimers[id];
           this.render();
 
           const cardAfterMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
@@ -2335,21 +2347,43 @@ class ShipmentApp {
             cardAfterMove.classList.add('just-delivered-anim');
           }
         }, 220);
-      }, 2000);
-    } else {
-      if (this.recentlyDeliveredIds) {
-        this.recentlyDeliveredIds.delete(id);
-      }
+      }, 5000);
+    } else if (prevStatus === 'Teslim Edildi' || prevStatus === 'İptal') {
+      // Teslim Edildi veya İptal durumundan geri aktif duruma alındığında
+      this.recentlyDeliveredIds.delete(id);
+      this.recentlyRevertedIds.add(id);
+
       this.saveData(true, 'UPDATE', shipment);
       this.render();
 
-      // Eğer Teslim Edildi veya İptal durumundan geri alındıysa yukarı akıcı kayma animasyonu uygula
-      if (prevStatus === 'Teslim Edildi' || prevStatus === 'İptal') {
-        const cardMovedUp = document.querySelector(`.shipment-card[data-id="${id}"]`);
-        if (cardMovedUp) {
-          cardMovedUp.classList.add('moving-up-anim');
-        }
+      const cardEl = document.querySelector(`.shipment-card[data-id="${id}"]`);
+      if (cardEl) {
+        cardEl.classList.add('reverting-hold-anim');
       }
+
+      // 5.0 saniye altta bekle, sonra animasyonla yukarı orijinal sırasına kaydır
+      this.pendingMoveTimers[id] = setTimeout(() => {
+        const cardBeforeMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
+        if (cardBeforeMove) {
+          cardBeforeMove.classList.add('moving-up-anim');
+        }
+
+        setTimeout(() => {
+          this.recentlyRevertedIds.delete(id);
+          delete this.pendingMoveTimers[id];
+          this.render();
+
+          const cardAfterMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
+          if (cardAfterMove) {
+            cardAfterMove.classList.add('moving-up-anim');
+          }
+        }, 220);
+      }, 5000);
+    } else {
+      this.recentlyDeliveredIds.delete(id);
+      this.recentlyRevertedIds.delete(id);
+      this.saveData(true, 'UPDATE', shipment);
+      this.render();
     }
 
     if (window.syncManager) {

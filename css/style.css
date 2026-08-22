@@ -1356,7 +1356,25 @@ body {
 }
 
 .shipment-card.moving-up-anim {
-  animation: slideUpToPosition 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUpToPosition 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes revertedPulseEffect {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+  }
+  35% {
+    transform: scale(1.025);
+    box-shadow: 0 0 0 8px rgba(2, 132, 199, 0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.shipment-card.reverting-hold-anim {
+  animation: revertedPulseEffect 0.65s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ↗️ BAŞKA GÜNE TRANSFER EDİLEN SEVKİYAT İZ KAYIT KARTI (ÖNCEKİ GÜNDE KALAN) */
