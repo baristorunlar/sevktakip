@@ -10,6 +10,12 @@
   
   <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('gurkan_theme_mode_v1') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
 </head>
 <body class="mode-display">
 
@@ -36,6 +42,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="themeToggleBtn" class="btn-header-tool theme-toggle-btn" title="Karanlık / Aydınlık Tema Geçişi">
+          <span class="theme-icon">🌙</span> <span class="theme-text">Koyu</span>
+        </button>
         <button id="btnOpenAdminAuth" class="btn-switch-mode admin-switch" title="Şifreli Panel Girişi Yapın">
           Panel Girişi
         </button>

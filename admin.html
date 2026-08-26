@@ -10,6 +10,12 @@
   
   <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('gurkan_theme_mode_v1') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
 </head>
 <body class="mode-admin">
 
@@ -39,6 +45,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="themeToggleBtn" class="btn-header-tool theme-toggle-btn" title="Karanlık / Aydınlık Tema Geçişi">
+          <span class="theme-icon">🌙</span> <span class="theme-text">Koyu</span>
+        </button>
         <a href="index.html" class="btn-switch-mode display-switch" title="Sevkiyat Canlı Bilgi & İzleme Ekranına Geçin">
           İzleme Ekranı
         </a>
@@ -535,21 +544,35 @@
             </div>
           </div>
 
-          <!-- SEKME 3: SES VE BİLDİRİM AYARLARI -->
+          <!-- SEKME 3: GÖRÜNÜM VE SES AYARLARI -->
           <div id="tab-audio" class="settings-tab-content" style="display: none;">
-            <div style="background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1.25rem;">
               <div>
-                <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem;">🔊 Operasyonel Sesli Uyarılar</h3>
-                <p style="font-size: 0.82rem; color: #64748b;">Yeni bir sevkiyat eklendiğinde veya canlı izleme ekranında uyarı verildiğinde sesli sinyal çalar.</p>
+                <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem;">🎨 Sistem Tema Tercihi</h3>
+                <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem;">Yönetici paneli ve canlı izleme ekranı için karanlık veya aydınlık tema seçin.</p>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <button type="button" id="btnThemeDarkModal" class="btn-primary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <span>🌙</span> Karanlık Tema (Varsayılan)
+                  </button>
+                  <button type="button" id="btnThemeLightModal" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <span>☀️</span> Aydınlık Tema (Beyaz)
+                  </button>
+                </div>
               </div>
 
-              <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
-                <button type="button" id="audioToggleBtnModal" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
-                  Sesli Bildirimler: Açık
-                </button>
-                <button type="button" id="testSoundBtnModal" class="btn-primary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
-                  Ses Motorunu Test Et
-                </button>
+              <hr style="border: 0; border-top: 1px solid #e2e8f0;">
+
+              <div>
+                <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem;">🔊 Operasyonel Sesli Uyarılar</h3>
+                <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem;">Yeni bir sevkiyat eklendiğinde veya canlı izleme ekranında uyarı verildiğinde sesli sinyal çalar.</p>
+                <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
+                  <button type="button" id="audioToggleBtnModal" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
+                    Sesli Bildirimler: Açık
+                  </button>
+                  <button type="button" id="testSoundBtnModal" class="btn-primary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
+                    Ses Motorunu Test Et
+                  </button>
+                </div>
               </div>
             </div>
           </div>

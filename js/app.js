@@ -25,6 +25,7 @@ class ShipmentApp {
     // 📺 SAYFA KİPLERİ: (isReadOnly = true -> Canlı İzleme Ekranı / false -> Yönetici Paneli)
     this.isReadOnly = document.body.classList.contains('mode-display') || window.location.pathname.includes('display.html');
 
+    this.initThemeEngine();
     this.initElements();
     this.loadData();
     this.initEventListeners();
@@ -35,6 +36,7 @@ class ShipmentApp {
 
   // --- 1. ELEMENT REFERANSLARI ---
   initElements() {
+    this.themeToggleBtn = document.getElementById('themeToggleBtn');
     this.weeklyGridEl = document.getElementById('weeklyGrid');
     this.weekTitleEl = document.getElementById('weekTitle');
     this.prevWeekBtn = document.getElementById('prevWeekBtn');
@@ -420,6 +422,21 @@ class ShipmentApp {
           this.updateModalAudioBtnUI(newState);
           this.showToast(newState ? 'Sesli bildirimler açıldı.' : 'Sesli bildirimler kapatıldı.', 'info');
         }
+      });
+    }
+
+    const btnThemeDark = document.getElementById('btnThemeDarkModal');
+    const btnThemeLight = document.getElementById('btnThemeLightModal');
+
+    if (btnThemeDark) {
+      btnThemeDark.addEventListener('click', () => {
+        this.applyTheme('dark', true);
+      });
+    }
+
+    if (btnThemeLight) {
+      btnThemeLight.addEventListener('click', () => {
+        this.applyTheme('light', true);
       });
     }
 
@@ -1612,6 +1629,64 @@ class ShipmentApp {
       btn.style.background = '#64748b';
       btn.style.color = '#ffffff';
       btn.style.borderColor = '#475569';
+    }
+  }
+
+  // --- TEMA YÖNETİM MOTORU (DARK & LIGHT THEME ENGINE) ---
+  initThemeEngine() {
+    this.themeToggleBtn = document.getElementById('themeToggleBtn');
+    
+    // Varsayılan tema: dark (koyu)
+    const savedTheme = localStorage.getItem('gurkan_theme_mode_v1') || 'dark';
+    this.applyTheme(savedTheme, false);
+
+    if (this.themeToggleBtn) {
+      this.themeToggleBtn.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(newTheme, true);
+      });
+    }
+  }
+
+  applyTheme(theme, showToastNotification = false) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem('gurkan_theme_mode_v1', theme);
+
+    const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
+    toggleBtns.forEach(btn => {
+      if (theme === 'dark') {
+        btn.innerHTML = '<span class="theme-icon">🌙</span> <span class="theme-text">Koyu</span>';
+        btn.title = 'Aydınlık Temaya Geç (Beyaz)';
+        btn.classList.remove('is-light');
+        btn.classList.add('is-dark');
+      } else {
+        btn.innerHTML = '<span class="theme-icon">☀️</span> <span class="theme-text">Açık</span>';
+        btn.title = 'Karanlık Temaya Geç (Koyu)';
+        btn.classList.remove('is-dark');
+        btn.classList.add('is-light');
+      }
+    });
+
+    const btnThemeDark = document.getElementById('btnThemeDarkModal');
+    const btnThemeLight = document.getElementById('btnThemeLightModal');
+    if (btnThemeDark && btnThemeLight) {
+      if (theme === 'dark') {
+        btnThemeDark.className = 'btn-primary';
+        btnThemeLight.className = 'btn-secondary';
+      } else {
+        btnThemeDark.className = 'btn-secondary';
+        btnThemeLight.className = 'btn-primary';
+      }
+    }
+
+    if (showToastNotification) {
+      this.showToast(
+        theme === 'dark' ? 'Karanlık Tema Aktif' : 'Aydınlık Tema Aktif',
+        theme === 'dark' ? 'Kusursuz gece/karanlık temaya geçildi.' : 'Aydınlık beyaz temaya geçildi.',
+        'info'
+      );
     }
   }
 
