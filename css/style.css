@@ -7,27 +7,27 @@
 :root, [data-theme="dark"] {
   --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   
-  /* DARK THEME (VARSAYILAN / DEFAULT) */
-  --navy-dark: #090d16;
-  --navy-header: #0e1422;
-  --slate-body: #0b0f19;
-  --card-bg: #141c2e;
+  /* ONYX TITAN HIGH-CONTRAST DARK THEME */
+  --navy-dark: #07090e;
+  --navy-header: #0d121c;
+  --slate-body: #07090e;
+  --card-bg: #111622;
 
-  --text-main: #f8fafc;
-  --text-muted: #cbd5e1;
+  --text-main: #ffffff;
+  --text-muted: #e2e8f0;
   --text-subtle: #94a3b8;
 
-  --border-light: #1e293b;
-  --border-medium: #22304a;
-  --border-dark: #33466a;
+  --border-light: #182030;
+  --border-medium: #202c3e;
+  --border-dark: #2d3d57;
 
-  --primary-brand: #38bdf8;
-  --accent-blue: #38bdf8;
+  --primary-brand: #00e5ff;
+  --accent-blue: #00e5ff;
   --accent-gold: #f59e0b;
 
-  --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.35);
-  --shadow-hover: 0 10px 24px rgba(0, 0, 0, 0.55);
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 229, 255, 0.25);
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -923,7 +923,7 @@ body, body *,
 }
 
 .day-column.over-capacity {
-  border: 2px solid #dc2626 !important;
+  border: 2px solid #ef4444 !important;
   background: #fff5f5 !important;
 }
 
@@ -956,11 +956,12 @@ body, body *,
 }
 
 .shipment-count-badge.over-capacity-badge {
-  background: #dc2626 !important;
+  background: #ef4444 !important;
   color: #ffffff !important;
-  font-weight: 700;
+  font-weight: 800 !important;
 }
 
+/* ⚠️ ARAÇ SERVİSTE (AÇIK TEMA SARI SARI TASARIMI) */
 .day-column.is-out-of-service {
   border: 2px dashed #d97706 !important;
   background: #fffbeb !important;
@@ -1022,23 +1023,17 @@ body, body *,
 }
 
 .toggle-service-btn:hover {
-  background: var(--slate-body);
-  color: var(--text-main);
-  background: rgba(220, 38, 38, 0.08);
-  border: 1px solid rgba(220, 38, 38, 0.25);
-  color: #dc2626;
-  border-radius: var(--radius-sm);
-  padding: 0.2rem 0.4rem;
-  font-size: 0.78rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  touch-action: manipulation;
+  background: rgba(2, 132, 199, 0.12);
+  border: 1px solid rgba(2, 132, 199, 0.35);
+  color: #0284c7;
+  transform: scale(1.05);
 }
 
-.toggle-service-btn:hover, .toggle-service-btn.active {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #b91c1c;
+.toggle-service-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+  border-color: #0284c7;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
   transform: scale(1.05);
 }
 
@@ -1121,7 +1116,7 @@ body, body *,
 }
 
 .capacity-fill.over {
-  background: #dc2626;
+  background: #ef4444;
 }
 
 .capacity-label {
@@ -2671,547 +2666,851 @@ body, body *,
   transform: rotate(25deg) scale(1.15);
 }
 
-/* --------------------------------------------------------------------------
-   KARANLIK TEMA KAPSAMLI VE KUSURSUZ STİLLERİ (DARK THEME FULL SUITE)
-   -------------------------------------------------------------------------- */
+/* ==========================================================================
+   YENİ NESİL KUSURSUZ KARANLIK TEMA: "EXECUTIVE ONYX & NEON TITAN"
+   (YÜKSEK KONTRAST, ULTRA-NET YAZILAR, DİKKAT ÇEKİCİ NEON VE DERİNLİK)
+   ========================================================================== */
 :root:not([data-theme="light"]), [data-theme="dark"] {
   color-scheme: dark;
 }
 
 :root:not([data-theme="light"]) body, [data-theme="dark"] body {
-  background-color: #0b0f19;
-  color: #f8fafc;
+  background-color: #07090e;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.16) 0%, transparent 55%),
+    radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.08) 0%, transparent 45%);
+  background-attachment: fixed;
+  color: #ffffff;
 }
 
-/* HEADER & ÜST ELEMANLAR */
+/* HEADER & ÜST YÖNETİCİ BARI */
 :root:not([data-theme="light"]) .app-header, [data-theme="dark"] .app-header {
-  background: linear-gradient(135deg, rgba(8, 12, 20, 0.98) 0%, rgba(14, 20, 32, 0.96) 100%);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, rgba(8, 11, 18, 0.98) 0%, rgba(13, 17, 28, 0.96) 100%);
+  border-bottom: 1.5px solid rgba(0, 229, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+:root:not([data-theme="light"]) .brand-titles h1, [data-theme="dark"] .brand-titles h1 {
+  color: #ffffff !important;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
 }
 
 :root:not([data-theme="light"]) .sync-badge, [data-theme="dark"] .sync-badge {
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: #4ade80;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1.5px solid #10b981;
+  color: #34d399;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
 }
 
 :root:not([data-theme="light"]) .live-clock-badge, [data-theme="dark"] .live-clock-badge {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.25);
-  color: #38bdf8;
+  background: rgba(0, 229, 255, 0.12);
+  border: 1.5px solid #00b4d8;
+  color: #00e5ff;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3);
 }
 
 :root:not([data-theme="light"]) .panel-mode-badge, [data-theme="dark"] .panel-mode-badge {
-  background: rgba(30, 41, 59, 0.8);
-  border-color: rgba(56, 189, 248, 0.35);
-  color: #e2e8f0;
+  background: #141b29;
+  border: 1.5px solid #00e5ff;
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
 }
 
 :root:not([data-theme="light"]) .btn-header-tool, [data-theme="dark"] .btn-header-tool,
 :root:not([data-theme="light"]) .btn-switch-mode, [data-theme="dark"] .btn-switch-mode {
-  background: rgba(255, 255, 255, 0.07);
-  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   color: #f1f5f9;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .btn-header-tool:hover, [data-theme="dark"] .btn-header-tool:hover,
 :root:not([data-theme="light"]) .btn-switch-mode:hover, [data-theme="dark"] .btn-switch-mode:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: #38bdf8;
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #00e5ff;
   color: #ffffff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
 }
 
-/* METRİK KARTLARI */
+/* METRİK KARTLARI (DİJİTAL KOKPİT EFEKTİ & DEV IŞILTILI SAYILAR) */
 :root:not([data-theme="light"]) .metric-card, [data-theme="dark"] .metric-card {
-  background: #111827;
-  border-color: #1e293b;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(180deg, #111724 0%, #0a0e17 100%);
+  border: 1.5px solid #1e2a3d;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
 }
 
 :root:not([data-theme="light"]) .metric-card:hover, [data-theme="dark"] .metric-card:hover {
-  background: #162035;
-  border-color: #3b82f6;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  background: linear-gradient(180deg, #161e30 0%, #0e1420 100%);
+  border-color: #00e5ff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 229, 255, 0.3);
+  transform: translateY(-2px);
 }
 
 :root:not([data-theme="light"]) .metric-info .lbl, [data-theme="dark"] .metric-info .lbl {
   color: #94a3b8;
+  font-weight: 900;
+  letter-spacing: 0.05em;
 }
 
 :root:not([data-theme="light"]) .metric-info .val, [data-theme="dark"] .metric-info .val {
-  color: #f8fafc;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+:root:not([data-theme="light"]) .metric-info .val.num-val, [data-theme="dark"] .metric-info .val.num-val {
+  font-size: 1.65rem;
+  font-weight: 900;
 }
 
 :root:not([data-theme="light"]) .metric-info .val.text-val, [data-theme="dark"] .metric-info .val.text-val {
-  color: #e2e8f0;
+  color: #f1f5f9;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .metric-sub, [data-theme="dark"] .metric-sub {
   color: #64748b;
+  font-weight: 700;
 }
 
 :root:not([data-theme="light"]) .metric-card.highlight-lead, [data-theme="dark"] .metric-card.highlight-lead {
-  background: linear-gradient(180deg, #0d1b36 0%, #111827 100%);
-  border-top-color: #3b82f6;
-  border-color: #1e3a8a;
+  border-top: 4px solid #00e5ff !important;
+  background: linear-gradient(180deg, #071f33 0%, #0a0e17 100%);
+}
+:root:not([data-theme="light"]) .metric-card.highlight-lead .val, [data-theme="dark"] .metric-card.highlight-lead .val {
+  color: #00e5ff !important;
+  text-shadow: 0 0 15px rgba(0, 229, 255, 0.5);
 }
 
 :root:not([data-theme="light"]) .metric-card.status-pending, [data-theme="dark"] .metric-card.status-pending {
-  background: linear-gradient(180deg, #241503 0%, #111827 100%);
-  border-top-color: #f59e0b;
-  border-color: #78350f;
+  border-top: 4px solid #f59e0b !important;
+  background: linear-gradient(180deg, #2b1702 0%, #0a0e17 100%);
+}
+:root:not([data-theme="light"]) .metric-card.status-pending .val, [data-theme="dark"] .metric-card.status-pending .val {
+  color: #fbbf24 !important;
+  text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
 }
 
 :root:not([data-theme="light"]) .metric-card.status-transit, [data-theme="dark"] .metric-card.status-transit {
-  background: linear-gradient(180deg, #071f30 0%, #111827 100%);
-  border-top-color: #0ea5e9;
-  border-color: #0369a1;
+  border-top: 4px solid #38bdf8 !important;
+  background: linear-gradient(180deg, #052336 0%, #0a0e17 100%);
+}
+:root:not([data-theme="light"]) .metric-card.status-transit .val, [data-theme="dark"] .metric-card.status-transit .val {
+  color: #38bdf8 !important;
+  text-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
 }
 
 :root:not([data-theme="light"]) .metric-card.status-delivered, [data-theme="dark"] .metric-card.status-delivered {
-  background: linear-gradient(180deg, #052313 0%, #111827 100%);
-  border-top-color: #22c55e;
-  border-color: #14532d;
+  border-top: 4px solid #10b981 !important;
+  background: linear-gradient(180deg, #042916 0%, #0a0e17 100%);
+}
+:root:not([data-theme="light"]) .metric-card.status-delivered .val, [data-theme="dark"] .metric-card.status-delivered .val {
+  color: #34d399 !important;
+  text-shadow: 0 0 15px rgba(52, 211, 153, 0.5);
 }
 
 :root:not([data-theme="light"]) .metric-card.metric-analytic, [data-theme="dark"] .metric-card.metric-analytic {
-  background: linear-gradient(180deg, #1b0c2e 0%, #111827 100%);
-  border-top-color: #a855f7;
-  border-color: #581c87;
+  border-top: 4px solid #a855f7 !important;
+  background: linear-gradient(180deg, #240b3b 0%, #0a0e17 100%);
+}
+:root:not([data-theme="light"]) .metric-card.metric-analytic .val, [data-theme="dark"] .metric-card.metric-analytic .val {
+  color: #c084fc !important;
+  text-shadow: 0 0 15px rgba(192, 132, 252, 0.5);
 }
 
-/* HAFTALIK NOT BANNERI */
+/* HAFTALIK NOT BANNERI (PARLAYAN KEHRİBAR KONTRASTI) */
 :root:not([data-theme="light"]) .weekly-announcement-banner, [data-theme="dark"] .weekly-announcement-banner {
-  background: linear-gradient(135deg, #241403 0%, #170d02 100%);
-  border-color: #b45309;
-  border-left: 6px solid #f59e0b;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(135deg, #301802 0%, #1a0d01 100%);
+  border: 2px solid #f59e0b;
+  border-left: 8px solid #fbbf24;
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.35);
 }
 
-:root:not([data-theme="light"]) .weekly-announcement-banner.empty-banner, [data-theme="dark"] .weekly-announcement-banner.empty-banner {
-  background: #111827;
-  border-color: #1e293b;
-  border-left: 4px solid #475569;
+:root:not([data-theme="light"]) .announcement-badge, [data-theme="dark"] .announcement-badge {
+  background: #f59e0b;
+  color: #000000;
+  font-weight: 900;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.5);
 }
 
 :root:not([data-theme="light"]) .announcement-text, [data-theme="dark"] .announcement-text {
-  color: #fde68a;
+  color: #fef08a !important;
+  font-weight: 900;
+  font-size: 0.95rem;
+  letter-spacing: 0.015em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
 }
 
 :root:not([data-theme="light"]) .btn-announcement-action.edit-btn, [data-theme="dark"] .btn-announcement-action.edit-btn {
-  background: #1e293b;
-  color: #fde68a;
-  border-color: #b45309;
+  background: #141b29;
+  color: #fef08a;
+  border: 1.5px solid #f59e0b;
+  font-weight: 900;
 }
 
 :root:not([data-theme="light"]) .btn-announcement-action.edit-btn:hover, [data-theme="dark"] .btn-announcement-action.edit-btn:hover {
-  background: #2d3748;
-  border-color: #f59e0b;
+  background: #f59e0b;
+  color: #000000;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
 }
 
 :root:not([data-theme="light"]) .btn-template-chip, [data-theme="dark"] .btn-template-chip {
-  background: #131b2e;
-  color: #cbd5e1;
-  border-color: #273754;
+  background: #141c2c;
+  color: #e2e8f0;
+  border: 1px solid #273752;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .btn-template-chip:hover, [data-theme="dark"] .btn-template-chip:hover {
-  background: #1e293b;
+  background: #1e2b44;
   color: #ffffff;
-  border-color: #38bdf8;
+  border-color: #00e5ff;
 }
 
 /* KONTROLLER & HAFTA SEÇİCİ */
 :root:not([data-theme="light"]) .week-title, [data-theme="dark"] .week-title {
-  color: #f8fafc;
+  color: #ffffff !important;
+  font-weight: 900;
+  font-size: 0.98rem;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
 }
 
 :root:not([data-theme="light"]) .nav-btn, [data-theme="dark"] .nav-btn {
-  background: #111827;
-  border-color: #1e293b;
-  color: #f8fafc;
+  background: #111624;
+  border: 1.5px solid #222e44;
+  color: #ffffff;
+  font-weight: 900;
 }
 
 :root:not([data-theme="light"]) .nav-btn:hover, [data-theme="dark"] .nav-btn:hover {
-  background: #1e293b;
-  border-color: #38bdf8;
+  background: #1a243a;
+  border-color: #00e5ff;
+  color: #00e5ff;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.35);
 }
 
 :root:not([data-theme="light"]) .search-input-wrapper input, [data-theme="dark"] .search-input-wrapper input {
-  background-color: #111827;
-  border-color: #1e293b;
-  color: #f8fafc;
+  background-color: #0a0e17;
+  border: 1.5px solid #202d44;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+:root:not([data-theme="light"]) .search-input-wrapper input::placeholder, [data-theme="dark"] .search-input-wrapper input::placeholder {
+  color: #94a3b8;
 }
 
 :root:not([data-theme="light"]) .search-input-wrapper input:focus, [data-theme="dark"] .search-input-wrapper input:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.35);
+}
+
+:root:not([data-theme="light"]) .search-icon, [data-theme="dark"] .search-icon {
+  color: #00e5ff;
 }
 
 :root:not([data-theme="light"]) .filter-select, [data-theme="dark"] .filter-select {
-  background-color: #111827;
-  border-color: #1e293b;
-  color: #f8fafc;
+  background-color: #0a0e17;
+  border: 1.5px solid #202d44;
+  color: #ffffff;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .filter-select:focus, [data-theme="dark"] .filter-select:focus {
-  border-color: #38bdf8;
+  border-color: #00e5ff;
 }
 
-/* GÜN KOLONLARI */
+/* ==========================================================================
+   GÜN KOLONLARI (DERİN ONİKS PANEL & ELEKTRİK MAVİ BUGÜN VURGUSU)
+   ========================================================================== */
 :root:not([data-theme="light"]) .day-column, [data-theme="dark"] .day-column {
-  background: #0e1422;
-  border-color: #1c2638;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  background: #0c1017;
+  border: 1.5px solid #1a2333;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.55);
 }
 
 :root:not([data-theme="light"]) .day-column.today, [data-theme="dark"] .day-column.today {
-  border: 2px solid #38bdf8;
-  background: #0c192e;
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.18);
+  border: 2px solid #00e5ff !important;
+  background: #0a1422 !important;
+  box-shadow: 0 0 26px rgba(0, 229, 255, 0.3), inset 0 0 16px rgba(0, 229, 255, 0.08) !important;
 }
 
 :root:not([data-theme="light"]) .day-column.past-day, [data-theme="dark"] .day-column.past-day {
-  background: #090d16;
-  opacity: 0.65;
+  background: #080a0f;
+  opacity: 0.7;
 }
 
 :root:not([data-theme="light"]) .day-column.over-capacity, [data-theme="dark"] .day-column.over-capacity {
   border: 2px solid #ef4444 !important;
-  background: #1f0b0f !important;
+  background: #160709 !important;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.2) !important;
 }
 
+:root:not([data-theme="light"]) .day-column.today.over-capacity, [data-theme="dark"] .day-column.today.over-capacity {
+  border: 2px solid #ef4444 !important;
+  background: #160709 !important;
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.3), inset 0 0 16px rgba(239, 68, 68, 0.08) !important;
+}
+
+/* ⚠️ ARAÇ SERVİSTE - KARANLIK TEMA SARI/KEHRİBAR (GÖZÜ YORMAYAN ASİL UYARLAMA) */
 :root:not([data-theme="light"]) .day-column.is-out-of-service, [data-theme="dark"] .day-column.is-out-of-service {
   border: 2px dashed #f59e0b !important;
-  background: #1c1102 !important;
+  background: #140e03 !important;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.15) !important;
+  opacity: 0.94;
 }
 
+:root:not([data-theme="light"]) .day-column.is-out-of-service:hover, [data-theme="dark"] .day-column.is-out-of-service:hover {
+  opacity: 1;
+}
+
+:root:not([data-theme="light"]) .day-header.out-of-service-header, [data-theme="dark"] .day-header.out-of-service-header {
+  background: linear-gradient(135deg, #2b1c05 0%, #1c1102 100%) !important;
+  border-bottom: 2px solid #f59e0b !important;
+}
+
+:root:not([data-theme="light"]) .day-header.out-of-service-header .day-name, [data-theme="dark"] .day-header.out-of-service-header .day-name {
+  color: #fef08a !important;
+  font-weight: 900 !important;
+}
+
+:root:not([data-theme="light"]) .day-header.out-of-service-header .day-date, [data-theme="dark"] .day-header.out-of-service-header .day-date {
+  color: #fde68a !important;
+  opacity: 0.85;
+}
+
+:root:not([data-theme="light"]) .day-header.out-of-service-header .shipment-count-badge, [data-theme="dark"] .day-header.out-of-service-header .shipment-count-badge {
+  background: #f59e0b !important;
+  color: #000000 !important;
+  border: none !important;
+  font-weight: 900 !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4) !important;
+}
+
+:root:not([data-theme="light"]) .out-of-service-banner, [data-theme="dark"] .out-of-service-banner {
+  background: linear-gradient(135deg, #241603 0%, #170d01 100%) !important;
+  border: 1.5px dashed #f59e0b !important;
+  border-radius: 8px !important;
+  color: #fef08a !important;
+  padding: 1.25rem 0.75rem !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15) !important;
+}
+
+:root:not([data-theme="light"]) .out-of-service-banner .title, [data-theme="dark"] .out-of-service-banner .title {
+  color: #fde047 !important;
+  font-weight: 900 !important;
+  font-size: 0.86rem !important;
+  letter-spacing: 0.02em;
+}
+
+:root:not([data-theme="light"]) .out-of-service-banner .desc, [data-theme="dark"] .out-of-service-banner .desc {
+  color: #fef08a !important;
+  opacity: 0.9;
+  line-height: 1.35;
+}
+
+/* GÜN BAŞLIĞI */
 :root:not([data-theme="light"]) .day-header, [data-theme="dark"] .day-header {
-  background: #141c2e;
-  border-bottom-color: #1f293d;
+  background: #121824;
+  border-bottom: 1.5px solid #1e283b;
 }
 
 :root:not([data-theme="light"]) .day-header.today-header, [data-theme="dark"] .day-header.today-header {
-  background: #172544;
-  border-bottom: 2px solid #38bdf8;
+  background: #102135;
+  border-bottom: 2px solid #00e5ff;
 }
 
 :root:not([data-theme="light"]) .day-name, [data-theme="dark"] .day-name {
-  color: #f8fafc;
+  color: #ffffff !important;
+  font-weight: 900;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 :root:not([data-theme="light"]) .day-date, [data-theme="dark"] .day-date {
   color: #94a3b8;
+  font-weight: 800;
+  font-size: 0.76rem;
 }
 
 :root:not([data-theme="light"]) .shipment-count-badge, [data-theme="dark"] .shipment-count-badge {
-  background: #1e293b;
-  color: #93c5fd;
+  background: #1a2233;
+  color: #38bdf8;
+  border: 1px solid #28374f;
+  font-weight: 900;
+}
+
+:root:not([data-theme="light"]) .day-header.today-header .shipment-count-badge, [data-theme="dark"] .day-header.today-header .shipment-count-badge {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.6);
+}
+
+/* 🔴 KAPASİTE AŞIMI - KARANLIK TEMA KIRMIZI/BORDO (GÖZÜ YORMAYAN KADİFE BORDO UYARLAMA) */
+:root:not([data-theme="light"]) .day-header.over-capacity-header, [data-theme="dark"] .day-header.over-capacity-header {
+  background: linear-gradient(135deg, #2b0a0f 0%, #1a0508 100%) !important;
+  border-bottom: 2px solid #ef4444 !important;
+}
+
+:root:not([data-theme="light"]) .day-header.over-capacity-header .day-name, [data-theme="dark"] .day-header.over-capacity-header .day-name {
+  color: #fee2e2 !important;
+  font-weight: 900 !important;
+}
+
+:root:not([data-theme="light"]) .day-header.over-capacity-header .day-date, [data-theme="dark"] .day-header.over-capacity-header .day-date {
+  color: #fca5a5 !important;
+  opacity: 0.85;
+}
+
+:root:not([data-theme="light"]) .shipment-count-badge.over-capacity-badge, [data-theme="dark"] .shipment-count-badge.over-capacity-badge {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc2626 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.4) !important;
 }
 
 :root:not([data-theme="light"]) .capacity-progress-bar, [data-theme="dark"] .capacity-progress-bar {
-  background: #1e293b;
+  background: #182030;
 }
 
 :root:not([data-theme="light"]) .capacity-fill, [data-theme="dark"] .capacity-fill {
-  background: #38bdf8;
+  background: linear-gradient(90deg, #0284c7 0%, #00e5ff 100%);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.45);
+}
+
+:root:not([data-theme="light"]) .capacity-fill.over, [data-theme="dark"] .capacity-fill.over {
+  background: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%) !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.45) !important;
 }
 
 :root:not([data-theme="light"]) .print-day-btn, [data-theme="dark"] .print-day-btn {
-  background: #1e293b;
-  border-color: #334155;
+  background: #161e2e;
+  border: 1px solid #27354d;
   color: #cbd5e1;
 }
 
 :root:not([data-theme="light"]) .print-day-btn:hover, [data-theme="dark"] .print-day-btn:hover {
-  background: #334155;
+  background: #23314a;
   color: #ffffff;
-  border-color: #64748b;
+  border-color: #00e5ff;
 }
 
 :root:not([data-theme="light"]) .cards-dropzone, [data-theme="dark"] .cards-dropzone {
-  background: #0c121e;
+  background: #080b11;
 }
 
 :root:not([data-theme="light"]) .cards-dropzone::-webkit-scrollbar-thumb, [data-theme="dark"] .cards-dropzone::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #202b3d;
+  border-radius: 10px;
 }
 
 :root:not([data-theme="light"]) .cards-dropzone::-webkit-scrollbar-thumb:hover, [data-theme="dark"] .cards-dropzone::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #00e5ff;
 }
 
 :root:not([data-theme="light"]) .cards-dropzone.drag-over, [data-theme="dark"] .cards-dropzone.drag-over {
-  background-color: #0c2642;
-  border: 2px dashed #38bdf8;
+  background-color: #081e33;
+  border: 2px dashed #00e5ff;
 }
 
 :root:not([data-theme="light"]) .empty-day-state, [data-theme="dark"] .empty-day-state {
-  background: #090d16;
-  border-color: #1e293b;
+  background: #06090e;
+  border: 1.5px dashed #1a2233;
   color: #64748b;
+  font-weight: 700;
 }
 
-/* SEVKİYAT KARTLARI */
+/* ==========================================================================
+   SEVKİYAT KARTLARI - YENİ NESİL ULTRA-NET, GÖZ ALICI TİTANYUM KARTLAR
+   ========================================================================== */
 :root:not([data-theme="light"]) .shipment-card, [data-theme="dark"] .shipment-card {
-  background: #162035;
-  border: 1px solid #23324d;
-  border-left: 4px solid #38bdf8;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  background: #111622;
+  border: 1.5px solid #202c3e;
+  border-left: 5px solid #00b4d8 !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 :root:not([data-theme="light"]) .shipment-card:hover, [data-theme="dark"] .shipment-card:hover {
-  background: #1c2a45;
-  border-color: #3b82f6;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  background: #161e2e;
+  border-color: #00e5ff;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.7), 0 0 16px rgba(0, 229, 255, 0.3);
 }
 
+/* Müşteri / Firma Adı: Bembeyaz, ekstra kalın, maksimum dikkat çekici */
 :root:not([data-theme="light"]) .shipment-card .card-customer-title, [data-theme="dark"] .shipment-card .card-customer-title {
-  color: #ffffff;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  font-size: 0.96rem !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  line-height: 1.35;
 }
 
+:root:not([data-theme="light"]) .shipment-card .card-customer-title span, [data-theme="dark"] .shipment-card .card-customer-title span {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+/* Sevk Sırası Rozeti (1. Sevk, 2. Sevk...): Neon Camgöbeği & Parlak */
 :root:not([data-theme="light"]) .shipment-card .order-badge, [data-theme="dark"] .shipment-card .order-badge {
-  background: #1e293b;
-  color: #93c5fd;
-  border: 1px solid #334155;
+  background: #082033 !important;
+  color: #00e5ff !important;
+  border: 1.5px solid #00b4d8 !important;
+  font-weight: 900 !important;
+  font-size: 0.74rem !important;
+  letter-spacing: 0.03em;
+  box-shadow: 0 2px 8px rgba(0, 229, 255, 0.3) !important;
 }
 
+/* Pazarlamacı / Temsilci Etiketi */
 :root:not([data-theme="light"]) .shipment-card .rep-tag, [data-theme="dark"] .shipment-card .rep-tag {
-  background: #0c1f38;
+  background: #0a1b2d;
   color: #38bdf8;
-  border: 1px solid #1e3a5f;
+  border: 1.5px solid #0284c7;
+  font-weight: 800;
+  font-size: 0.74rem;
+  padding: 0.15rem 0.5rem;
 }
 
-:root:not([data-theme="light"]) .shipment-card .card-address-box, [data-theme="dark"] .shipment-card .card-address-box {
-  background: #0f172a;
-  border: 1px solid #1e293b;
-}
-
-:root:not([data-theme="light"]) .shipment-card .district-pill, [data-theme="dark"] .shipment-card .district-pill {
-  color: #cbd5e1;
-}
-
-:root:not([data-theme="light"]) .shipment-card .card-note-snippet, [data-theme="dark"] .shipment-card .card-note-snippet {
-  background: #1e1b09;
-  color: #fde68a;
-  border-color: #78350f;
-}
-
-:root:not([data-theme="light"]) .shipment-card .time-tag, [data-theme="dark"] .shipment-card .time-tag {
+/* Oluşturulma Saati */
+:root:not([data-theme="light"]) .shipment-card .created-at-tag, [data-theme="dark"] .shipment-card .created-at-tag {
   color: #94a3b8;
+  font-weight: 700;
+  font-size: 0.72rem;
 }
 
+/* Teslimat Adres Kutusu: Tek parça, yüksek kontrastlı & okunur */
+:root:not([data-theme="light"]) .shipment-card .card-address-box, [data-theme="dark"] .shipment-card .card-address-box {
+  background: #080c14 !important;
+  border: 1.5px solid #1c2638 !important;
+  border-radius: 6px !important;
+  padding: 0.32rem 0.55rem !important;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6) !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card .card-address-box .district-pill, [data-theme="dark"] .shipment-card .card-address-box .district-pill {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #f8fafc !important;
+  font-size: 0.8rem !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  padding: 0 !important;
+}
+
+/* Transfer Rozetleri */
+:root:not([data-theme="light"]) .transferred-to-badge, [data-theme="dark"] .transferred-to-badge {
+  background: linear-gradient(135deg, #5b1494 0%, #3b0764 100%) !important;
+  border: 1px solid #c084fc !important;
+  color: #f3e8ff !important;
+  font-weight: 900 !important;
+}
+
+:root:not([data-theme="light"]) .transferred-from-badge, [data-theme="dark"] .transferred-from-badge {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  border: 1px solid #00e5ff !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+/* Sevkiyat Notu */
+:root:not([data-theme="light"]) .shipment-card .card-note-snippet, [data-theme="dark"] .shipment-card .card-note-snippet {
+  background: #241402;
+  color: #fef08a;
+  border: 1px solid #f59e0b;
+  font-weight: 800;
+  font-size: 0.76rem;
+}
+
+/* Zaman Dilimi (Sabah Sevkiyatı, Öğleden Sonra, Akşam vb. - Yüksek Kontrastlı & Net) */
+:root:not([data-theme="light"]) .shipment-card .time-tag, [data-theme="dark"] .shipment-card .time-tag {
+  background: #08111e !important;
+  border: 1.5px solid #1e3352 !important;
+  color: #38bdf8 !important;
+  font-weight: 800 !important;
+  font-size: 0.74rem !important;
+  padding: 0.18rem 0.55rem !important;
+  border-radius: 4px !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5) !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card.is-delivered .time-tag, [data-theme="dark"] .shipment-card.is-delivered .time-tag {
+  background: #021a0e !important;
+  border: 1px solid #064e28 !important;
+  color: #4ade80 !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card.is-preparing .time-tag, [data-theme="dark"] .shipment-card.is-preparing .time-tag {
+  background: #240d02 !important;
+  border: 1px solid #7c2d12 !important;
+  color: #fdba74 !important;
+}
+
+/* Aksiyon Butonları */
 :root:not([data-theme="light"]) .shipment-card .action-btn, [data-theme="dark"] .shipment-card .action-btn {
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #f8fafc;
+  background: #1a2233 !important;
+  border: 1px solid #2b3852 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+  border-radius: 5px;
 }
 
 :root:not([data-theme="light"]) .shipment-card .action-btn:hover, [data-theme="dark"] .shipment-card .action-btn:hover {
-  background: #334155;
-  color: #38bdf8;
-  border-color: #38bdf8;
+  background: #25334d !important;
+  color: #00e5ff !important;
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35) !important;
 }
 
-/* ÖZEL KART DURUMLARI */
-:root:not([data-theme="light"]) .shipment-card.is-delivered, [data-theme="dark"] .shipment-card.is-delivered {
-  background: linear-gradient(135deg, #062817 0%, #0a3821 100%);
-  border: 1.5px solid #166534;
-  border-left: 6px solid #22c55e !important;
-  box-shadow: 0 4px 14px rgba(22, 101, 52, 0.25);
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-delivered .order-badge, [data-theme="dark"] .shipment-card.is-delivered .order-badge {
-  background: #15803d;
-  color: #ffffff;
-  border: none;
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-delivered .card-address-box, [data-theme="dark"] .shipment-card.is-delivered .card-address-box {
-  background: #051d10;
-  border-color: #166534;
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-preparing, [data-theme="dark"] .shipment-card.is-preparing {
-  background: linear-gradient(135deg, #241403 0%, #1c0f02 100%);
-  border: 1.5px solid #9a3412;
-  border-left: 6px solid #ea580c !important;
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-cancelled, [data-theme="dark"] .shipment-card.is-cancelled {
-  background: linear-gradient(135deg, #260c10 0%, #1c080b 100%);
-  border: 1.5px solid #991b1b;
-  border-left: 6px solid #ef4444 !important;
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-transferred-card, [data-theme="dark"] .shipment-card.is-transferred-card {
-  background: linear-gradient(135deg, #1f0b30 0%, #150622 100%);
-  border: 1.5px dashed #7e22ce;
-  border-left: 6px solid #a855f7 !important;
-}
-
-:root:not([data-theme="light"]) .shipment-card.is-new, [data-theme="dark"] .shipment-card.is-new {
-  background: linear-gradient(180deg, #261403 0%, #150b01 100%);
-  border: 2px solid #ea580c !important;
-  border-left: 6px solid #f97316 !important;
-}
-
-/* DURUM ROZETLERİ (STATUS PILLS) */
+/* ==========================================================================
+   DURUM ROZETLERİ (STATUS PILLS) - CANLI, NEON & UZAKTAN NET SEÇİLEN
+   ========================================================================== */
 :root:not([data-theme="light"]) .status-pill.status-beklemede, [data-theme="dark"] .status-pill.status-beklemede {
-  background: #3b2306;
-  color: #fbbf24;
-  border: 1px solid #78350f;
+  background: #332003 !important;
+  color: #fde047 !important;
+  border: 1.5px solid #f59e0b !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3) !important;
 }
 
 :root:not([data-theme="light"]) .status-pill.status-hazirlaniyor, [data-theme="dark"] .status-pill.status-hazirlaniyor {
-  background: #361e05;
-  color: #fb923c;
-  border: 1px solid #9a3412;
+  background: #331302 !important;
+  color: #fb923c !important;
+  border: 1.5px solid #ea580c !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.3) !important;
 }
 
 :root:not([data-theme="light"]) .status-pill.status-yolda, [data-theme="dark"] .status-pill.status-yolda {
-  background: #08283e;
-  color: #38bdf8;
-  border: 1px solid #0369a1;
+  background: #042136 !important;
+  color: #38bdf8 !important;
+  border: 1.5px solid #00b4d8 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(0, 180, 216, 0.3) !important;
 }
 
 :root:not([data-theme="light"]) .status-pill.status-teslim-edildi, [data-theme="dark"] .status-pill.status-teslim-edildi {
-  background: #052e16;
-  color: #4ade80;
-  border: 1px solid #15803d;
+  background: #032815 !important;
+  color: #34d399 !important;
+  border: 1.5px solid #10b981 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35) !important;
 }
 
 :root:not([data-theme="light"]) .status-pill.status-iptal-edildi, [data-theme="dark"] .status-pill.status-iptal-edildi {
-  background: #3b0d11;
-  color: #f87171;
-  border: 1px solid #991b1b;
+  background: #33080c !important;
+  color: #f87171 !important;
+  border: 1.5px solid #ef4444 !important;
+  font-weight: 900 !important;
 }
 
-/* MODALLAR & PENCERELER */
+/* ÖZEL KART DURUMLARI */
+/* 🟢 TESLİM EDİLDİ: Derin Zümrüt Zemin, Parlak Yeşil Çerçeve & Net Yazı */
+:root:not([data-theme="light"]) .shipment-card.is-delivered, [data-theme="dark"] .shipment-card.is-delivered {
+  background: linear-gradient(135deg, #032011 0%, #06301a 100%) !important;
+  border: 1.5px solid #10b981 !important;
+  border-left: 6px solid #10b981 !important;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.3) !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card.is-delivered .order-badge, [data-theme="dark"] .shipment-card.is-delivered .order-badge {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.5) !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card.is-delivered .card-address-box, [data-theme="dark"] .shipment-card.is-delivered .card-address-box {
+  background: #02140a !important;
+  border: 1px solid #064e28 !important;
+  color: #e2e8f0 !important;
+}
+
+:root:not([data-theme="light"]) .shipment-card.is-delivered .card-address-box .district-pill, [data-theme="dark"] .shipment-card.is-delivered .card-address-box .district-pill {
+  color: #e2e8f0 !important;
+}
+
+/* ⚡ HAZIRLANIYOR */
+:root:not([data-theme="light"]) .shipment-card.is-preparing, [data-theme="dark"] .shipment-card.is-preparing {
+  background: linear-gradient(135deg, #261102 0%, #150901 100%) !important;
+  border: 1.5px solid #ea580c !important;
+  border-left: 6px solid #f97316 !important;
+  box-shadow: 0 4px 18px rgba(234, 88, 12, 0.3) !important;
+}
+
+/* 🔴 İPTAL */
+:root:not([data-theme="light"]) .shipment-card.is-cancelled, [data-theme="dark"] .shipment-card.is-cancelled {
+  background: linear-gradient(135deg, #24070a 0%, #150406 100%) !important;
+  border: 1.5px solid #dc2626 !important;
+  border-left: 6px solid #ef4444 !important;
+  opacity: 0.85;
+}
+
+/* 🟣 TRANSFER */
+:root:not([data-theme="light"]) .shipment-card.is-transferred-card, [data-theme="dark"] .shipment-card.is-transferred-card {
+  background: linear-gradient(135deg, #210833 0%, #12041c 100%) !important;
+  border: 1.5px dashed #a855f7 !important;
+  border-left: 6px solid #c084fc !important;
+  box-shadow: 0 4px 18px rgba(168, 85, 247, 0.25) !important;
+}
+
+/* ✨ YENİ SEVKİYAT */
+:root:not([data-theme="light"]) .shipment-card.is-new, [data-theme="dark"] .shipment-card.is-new {
+  background: linear-gradient(180deg, #281202 0%, #120701 100%) !important;
+  border: 2px solid #f97316 !important;
+  border-left: 6px solid #ff781f !important;
+}
+
+/* MODALLAR & PENCERELER (DERİN KOKPİT & NET FORMLAR) */
 :root:not([data-theme="light"]) .modal-overlay, [data-theme="dark"] .modal-overlay {
-  background: rgba(3, 7, 18, 0.85);
-  backdrop-filter: blur(8px);
+  background: rgba(2, 4, 8, 0.9);
+  backdrop-filter: blur(12px);
 }
 
 :root:not([data-theme="light"]) .modal-card, [data-theme="dark"] .modal-card {
-  background: #111827;
-  border: 1px solid #1e293b;
-  color: #f8fafc;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  background: #0d121c;
+  border: 1.5px solid #222f42;
+  color: #ffffff;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.9);
 }
 
 :root:not([data-theme="light"]) .modal-header, [data-theme="dark"] .modal-header {
-  background: #090d16;
-  border-bottom: 1px solid #1e293b;
+  background: #080c14;
+  border-bottom: 1.5px solid #1e2a3c;
+}
+
+:root:not([data-theme="light"]) .modal-header h2, [data-theme="dark"] .modal-header h2 {
+  color: #ffffff;
+  font-weight: 900;
 }
 
 :root:not([data-theme="light"]) .modal-body, [data-theme="dark"] .modal-body {
-  background: #111827;
-  color: #f8fafc;
+  background: #0d121c;
+  color: #ffffff;
 }
 
 :root:not([data-theme="light"]) .modal-footer, [data-theme="dark"] .modal-footer {
-  background: #0c101d;
-  border-top: 1px solid #1e293b;
+  background: #080c14;
+  border-top: 1.5px solid #1e2a3c;
 }
 
 :root:not([data-theme="light"]) .form-group label, [data-theme="dark"] .form-group label {
-  color: #94a3b8;
+  color: #cbd5e1 !important;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .form-group input, [data-theme="dark"] .form-group input,
 :root:not([data-theme="light"]) .form-group select, [data-theme="dark"] .form-group select,
 :root:not([data-theme="light"]) .form-group textarea, [data-theme="dark"] .form-group textarea {
-  background-color: #0c121e;
-  border: 1px solid #1f293d;
-  color: #f8fafc;
+  background-color: #060910 !important;
+  border: 1.5px solid #1e2b3e !important;
+  color: #ffffff !important;
+  font-weight: 700;
 }
 
 :root:not([data-theme="light"]) .form-group input:focus, [data-theme="dark"] .form-group input:focus,
 :root:not([data-theme="light"]) .form-group select:focus, [data-theme="dark"] .form-group select:focus,
 :root:not([data-theme="light"]) .form-group textarea:focus, [data-theme="dark"] .form-group textarea:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  border-color: #00e5ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.35) !important;
 }
 
 :root:not([data-theme="light"]) .btn-secondary, [data-theme="dark"] .btn-secondary {
-  background: #1e293b;
-  border-color: #334155;
-  color: #cbd5e1;
+  background: #141b29;
+  border: 1px solid #28374d;
+  color: #e2e8f0;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .btn-secondary:hover, [data-theme="dark"] .btn-secondary:hover {
-  background: #334155;
+  background: #202b3e;
   color: #ffffff;
+  border-color: #00e5ff;
 }
 
 /* SİSTEM AYARLARI MODALİ (SETTINGS MODAL) */
 :root:not([data-theme="light"]) .settings-sidebar, [data-theme="dark"] .settings-sidebar {
-  background: #080c14;
-  border-right: 1px solid #1e293b;
+  background: #070a10;
+  border-right: 1.5px solid #1a2333;
 }
 
 :root:not([data-theme="light"]) .settings-content-area, [data-theme="dark"] .settings-content-area {
-  background: #0e1422;
-  color: #f1f5f9;
+  background: #0a0e16;
+  color: #ffffff;
 }
 
 :root:not([data-theme="light"]) .user-column-box, [data-theme="dark"] .user-column-box {
-  background: #131b2e;
-  border-color: #1e293b;
+  background: #0f1522 !important;
+  border: 1.5px solid #1e2a3c !important;
+}
+
+:root:not([data-theme="light"]) .user-column-box h3, [data-theme="dark"] .user-column-box h3 {
+  color: #ffffff !important;
 }
 
 :root:not([data-theme="light"]) .user-card-item, [data-theme="dark"] .user-card-item {
-  background: #162035;
-  border-color: #1e293b;
+  background: #141b29 !important;
+  border: 1.5px solid #202c3e !important;
 }
 
 :root:not([data-theme="light"]) .user-name-title, [data-theme="dark"] .user-name-title {
-  color: #f8fafc !important;
+  color: #ffffff !important;
+  font-weight: 800;
 }
 
 :root:not([data-theme="light"]) .user-pin-badge, [data-theme="dark"] .user-pin-badge {
-  background: #1e293b;
-  color: #93c5fd;
+  background: #1a2436;
+  color: #38bdf8;
+  border: 1px solid #00b4d8;
 }
 
 :root:not([data-theme="light"]) .perm-pill, [data-theme="dark"] .perm-pill {
-  background: #1e293b;
-  border-color: #334155;
-  color: #64748b;
+  background: #141b29;
+  border-color: #243247;
+  color: #94a3b8;
 }
 
 :root:not([data-theme="light"]) .perm-pill.active, [data-theme="dark"] .perm-pill.active,
 :root:not([data-theme="light"]) .perm-pill.active-blue, [data-theme="dark"] .perm-pill.active-blue {
-  background: #0c2b4e;
-  border-color: #0369a1;
-  color: #38bdf8;
+  background: #092c4c;
+  border-color: #00e5ff;
+  color: #00e5ff;
 }
 
 :root:not([data-theme="light"]) .perm-pill.active-admin, [data-theme="dark"] .perm-pill.active-admin {
-  background: #25123d;
-  border-color: #6b21a8;
-  color: #c084fc;
+  background: #2c1048;
+  border-color: #9333ea;
+  color: #d8b4fe;
 }
 
 :root:not([data-theme="light"]) .audit-log-list-container, [data-theme="dark"] .audit-log-list-container {
-  background: #0c121e;
-  border-color: #1e293b;
+  background: #060910;
+  border: 1.5px solid #1a2433;
 }
 
 :root:not([data-theme="light"]) .audit-log-item, [data-theme="dark"] .audit-log-item {
-  background: #131b2e;
-  border-color: #1e293b;
-  color: #cbd5e1;
+  background: #0e1420;
+  border: 1px solid #1b2536;
+  color: #e2e8f0;
 }
 
 /* PIN AUTH MODAL */
 :root:not([data-theme="light"]) #pinAuthInput, [data-theme="dark"] #pinAuthInput {
-  background-color: #090d16 !important;
-  color: #38bdf8 !important;
-  border-color: #0284c7 !important;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+  background-color: #060910 !important;
+  color: #00e5ff !important;
+  border: 2px solid #00b4d8 !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 18px rgba(0, 229, 255, 0.35) !important;
 }
 
 :root:not([data-theme="light"]) #pinAuthInput::placeholder, [data-theme="dark"] #pinAuthInput::placeholder {
@@ -3220,12 +3519,12 @@ body, body *,
 
 /* FOOTER LOJİSTİK TIR ALANI */
 :root:not([data-theme="light"]) .corporate-logistics-footer, [data-theme="dark"] .corporate-logistics-footer {
-  background: #080c14;
-  border-top: 1px solid #1e293b;
+  background: #06090e;
+  border-top: 1.5px solid #1a2333;
 }
 
 :root:not([data-theme="light"]) .corporate-highway-track, [data-theme="dark"] .corporate-highway-track {
-  background: #05080e;
+  background: #04060a;
 }
 
 :root:not([data-theme="light"]) .track-lane-lines, [data-theme="dark"] .track-lane-lines {

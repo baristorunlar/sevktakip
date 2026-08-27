@@ -1637,7 +1637,7 @@ class ShipmentApp {
     this.themeToggleBtn = document.getElementById('themeToggleBtn');
     
     // Varsayılan tema: dark (koyu)
-    const savedTheme = localStorage.getItem('gurkan_theme_mode_v1') || 'dark';
+    const savedTheme = localStorage.getItem('gurkan_theme_mode_v2') || 'dark';
     this.applyTheme(savedTheme, false);
 
     if (this.themeToggleBtn) {
@@ -1652,7 +1652,7 @@ class ShipmentApp {
   applyTheme(theme, showToastNotification = false) {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('gurkan_theme_mode_v1', theme);
+    localStorage.setItem('gurkan_theme_mode_v2', theme);
 
     const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
     toggleBtns.forEach(btn => {
@@ -2080,7 +2080,7 @@ class ShipmentApp {
               ` : ''}
               <button class="print-day-btn" title="${day.name} Yükleme Listesini Yazdır">🖨️</button>
               <span class="shipment-count-badge ${isOverCapacity ? 'over-capacity-badge' : ''}">
-                ${isDayDisabled ? 'SEVK YOK' : (isOverCapacity ? 'Aşım (' + activeDayShipmentsCount + ')' : activeDayShipmentsCount + ' Sevk')}
+                ${isDayDisabled ? 'ARAÇ SERVİSTE' : (isOverCapacity ? 'Aşım (' + activeDayShipmentsCount + ')' : activeDayShipmentsCount + ' Sevk')}
               </span>
             </div>
           </div>
@@ -2118,7 +2118,7 @@ class ShipmentApp {
       if (isDayDisabled) {
         dropzone.innerHTML = `
           <div class="out-of-service-banner">
-            <span class="title">🚫 ARAÇ SERVİSTE / SEVK YOK</span>
+            <span class="title">⚠️ ARAÇ SERVİSTE / SEVK YOK</span>
             <span class="desc">Araç bakımda veya bu gün için sevk alımı kapatılmıştır.</span>
           </div>
         `;
