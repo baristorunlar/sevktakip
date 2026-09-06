@@ -26,6 +26,7 @@ class ShipmentApp {
     this.isReadOnly = document.body.classList.contains('mode-display') || window.location.pathname.includes('display.html');
 
     this.initThemeEngine();
+    this.initFullscreenEngine();
     this.initElements();
     this.loadData();
     this.initEventListeners();
@@ -1687,6 +1688,82 @@ class ShipmentApp {
         theme === 'dark' ? 'Kusursuz gece/karanlık temaya geçildi.' : 'Aydınlık beyaz temaya geçildi.',
         'info'
       );
+    }
+  }
+
+  // --- TAM EKRAN MOTORU (FULLSCREEN ENGINE) ---
+  initFullscreenEngine() {
+    const fullscreenBtns = document.querySelectorAll('.fullscreen-toggle-btn');
+
+    const updateButtonUI = () => {
+      const isFullscreen = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
+
+      fullscreenBtns.forEach(btn => {
+        if (isFullscreen) {
+          btn.innerHTML = '<span class="fullscreen-icon">🗗</span> <span class="fullscreen-text">Küçült</span>';
+          btn.title = 'Tam Ekrandan Çık (F11 veya Esc)';
+          btn.classList.add('is-fullscreen');
+        } else {
+          btn.innerHTML = '<span class="fullscreen-icon">⛶</span> <span class="fullscreen-text">Tam Ekran</span>';
+          btn.title = 'Tam Ekrana Geç (F11)';
+          btn.classList.remove('is-fullscreen');
+        }
+      });
+    };
+
+    fullscreenBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.toggleFullscreen();
+      });
+    });
+
+    document.addEventListener('fullscreenchange', updateButtonUI);
+    document.addEventListener('webkitfullscreenchange', updateButtonUI);
+    document.addEventListener('mozfullscreenchange', updateButtonUI);
+    document.addEventListener('MSFullscreenChange', updateButtonUI);
+
+    // İlk açılış durumu kontrolü
+    updateButtonUI();
+  }
+
+  toggleFullscreen() {
+    const isFullscreen = !!(
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+
+    if (!isFullscreen) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(err => {
+          console.warn('Tam ekran izni verilemedi:', err);
+        });
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      } else if (docEl.mozRequestFullScreen) {
+        docEl.mozRequestFullScreen();
+      } else if (docEl.msRequestFullscreen) {
+        docEl.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(err => {
+          console.warn('Tam ekrandan çıkılamadı:', err);
+        });
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
     }
   }
 
