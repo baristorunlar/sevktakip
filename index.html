@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gürkan Yapı Malzemeleri - Sevkiyat Canlı Bilgi Ekranı</title>
   
+  <!-- Kurumsal Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="shortcut icon" type="image/png" href="images/logo.png">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  
   <!-- Kurumsal Stil Dosyası -->
-  <link rel="stylesheet" href="css/style.css?v=4.7">
+  <link rel="stylesheet" href="css/style.css?v=5.8">
   
   <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function() {
-      const savedTheme = localStorage.getItem('gurkan_theme_mode_v2') || 'dark';
+      const savedTheme = localStorage.getItem('gurkan_theme_mode_v3') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
+      document.body && document.body.setAttribute('data-theme', savedTheme);
     })();
   </script>
 </head>
@@ -259,28 +265,14 @@
        ========================================================================== -->
   <footer class="corporate-logistics-footer">
     <div class="corporate-highway-track">
-      <div class="track-lane-lines"></div>
-      
-      <!-- RESMİ KURUMSAL MITSUBISHI FUSO SEVKİYAT ARACI -->
-      <div class="corporate-truck-container">
-        <div class="fuso-vehicle-card">
-          <div class="fuso-cargo-unit">
-            <span class="fuso-corp-title">GÜRKAN YAPI</span>
-            <span class="fuso-corp-sub">LOJİSTİK FİLOSU</span>
-          </div>
-          <div class="fuso-cabin-unit">
-            <div class="fuso-window"></div>
-            <div class="fuso-emblem-grille">
-              <span class="fuso-mark">❖</span>
-              <span class="fuso-name">FUSO</span>
-            </div>
-            <div class="fuso-beam"></div>
-          </div>
-          <div class="fuso-wheels-bar">
-            <span class="fuso-wheel">⚙️</span>
-            <span class="fuso-wheel">⚙️</span>
-          </div>
+      <div class="asphalt-gold-branding">
+        <span class="gold-curb-line left"></span>
+        <div class="gold-engraved-text">
+          <span class="gold-engraved-emblem">❖</span>
+          <span class="gold-main-title">GÜRKAN YAPI MALZEMELERİ</span>
+          <span class="gold-engraved-emblem">❖</span>
         </div>
+        <span class="gold-curb-line right"></span>
       </div>
     </div>
   </footer>
@@ -294,6 +286,6 @@
   <!-- ÖRNEK/VARSAYILAN VERİ MODELİ -->
   <script src="js/mockData.js?v=1.3"></script>
   <!-- ANA UYGULAMA MANTIĞI -->
-  <script src="js/app.js?v=1.4"></script>
+  <script src="js/app.js?v=2.7"></script>
 </body>
 </html>

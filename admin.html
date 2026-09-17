@@ -5,15 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gürkan Yapı Malzemeleri - Sevkiyat Yönetici Paneli</title>
   
+  <!-- Kurumsal Favicon -->
+  <link rel="icon" type="image/png" href="images/logo.png">
+  <link rel="shortcut icon" type="image/png" href="images/logo.png">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  
   <!-- Kurumsal Stil Dosyası -->
-  <link rel="stylesheet" href="css/style.css?v=4.7">
+  <link rel="stylesheet" href="css/style.css?v=5.8">
   
   <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function() {
-      const savedTheme = localStorage.getItem('gurkan_theme_mode_v2') || 'dark';
+      const savedTheme = localStorage.getItem('gurkan_theme_mode_v3') || 'light';
       document.documentElement.setAttribute('data-theme', savedTheme);
+      document.body && document.body.setAttribute('data-theme', savedTheme);
     })();
   </script>
 </head>
@@ -193,28 +199,14 @@
        ========================================================================== -->
   <footer class="corporate-logistics-footer">
     <div class="corporate-highway-track">
-      <div class="track-lane-lines"></div>
-      
-      <!-- RESMİ KURUMSAL MITSUBISHI FUSO SEVKİYAT ARACI -->
-      <div class="corporate-truck-container">
-        <div class="fuso-vehicle-card">
-          <div class="fuso-cargo-unit">
-            <span class="fuso-corp-title">GÜRKAN YAPI</span>
-            <span class="fuso-corp-sub">LOJİSTİK FİLOSU</span>
-          </div>
-          <div class="fuso-cabin-unit">
-            <div class="fuso-window"></div>
-            <div class="fuso-emblem-grille">
-              <span class="fuso-mark">❖</span>
-              <span class="fuso-name">FUSO</span>
-            </div>
-            <div class="fuso-beam"></div>
-          </div>
-          <div class="fuso-wheels-bar">
-            <span class="fuso-wheel">⚙️</span>
-            <span class="fuso-wheel">⚙️</span>
-          </div>
+      <div class="asphalt-gold-branding">
+        <span class="gold-curb-line left"></span>
+        <div class="gold-engraved-text">
+          <span class="gold-engraved-emblem">❖</span>
+          <span class="gold-main-title">GÜRKAN YAPI MALZEMELERİ</span>
+          <span class="gold-engraved-emblem">❖</span>
         </div>
+        <span class="gold-curb-line right"></span>
       </div>
     </div>
   </footer>
@@ -708,6 +700,49 @@
 </div>
 
   <!-- ==========================================================================
+       11. GÜN DURUMU / SEVK KAPATMA MODALİ (ŞOFÖR İZİNLİ & ARAÇ SERVİSTE)
+       ========================================================================== -->
+  <div id="dayStatusModal" class="modal-overlay" style="z-index: 999998 !important;">
+    <div class="modal-card" style="max-width: 480px; border-radius: 12px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);">
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 1rem 1.25rem; border-bottom: 2px solid #38bdf8;">
+        <h2 id="dayStatusModalTitle" style="font-size: 0.95rem; font-weight: 800; color: #ffffff; letter-spacing: 0.02em;">📅 GÜN DURUMU YÖNETİMİ</h2>
+        <button id="closeDayStatusModalBtn" class="modal-close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.4rem 1.25rem;">
+        <p id="dayStatusModalDesc" style="font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 1.1rem; text-align: center;">
+          Pazartesi günü için sevk durumunu belirleyiniz:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button type="button" id="btnSetDriverOff" class="day-status-action-btn btn-driver-off" style="display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1.1rem; border-radius: 8px; border: 1.5px solid #4f46e5; background: #f5f3ff; cursor: pointer; text-align: left; width: 100%;">
+            <span style="font-size: 1.8rem; line-height: 1;">👨‍✈️</span>
+            <div>
+              <div class="status-title" style="font-weight: 800; font-size: 0.92rem; color: #3730a3;">Şoför Yok / İzinli</div>
+              <div class="status-desc" style="font-size: 0.76rem; color: #4338ca; margin-top: 0.15rem;">Şoför izinde olduğu için o güne kesinlikle sevk yazılamaz ve aktarılamaz.</div>
+            </div>
+          </button>
+          <button type="button" id="btnSetVehicleService" class="day-status-action-btn btn-vehicle-service" style="display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1.1rem; border-radius: 8px; border: 1.5px solid #d97706; background: #fffbeb; cursor: pointer; text-align: left; width: 100%;">
+            <span style="font-size: 1.8rem; line-height: 1;">🚚</span>
+            <div>
+              <div class="status-title" style="font-weight: 800; font-size: 0.92rem; color: #78350f;">Araç Serviste / Bakımda</div>
+              <div class="status-desc" style="font-size: 0.76rem; color: #92400e; margin-top: 0.15rem;">Araç bakımda olduğu için bu gün için sevk alımı durdurulur.</div>
+            </div>
+          </button>
+          <button type="button" id="btnResetDayStatus" class="day-status-action-btn btn-reset-day" style="display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1.1rem; border-radius: 8px; border: 1.5px solid #10b981; background: #ecfdf5; cursor: pointer; text-align: left; width: 100%;">
+            <span style="font-size: 1.8rem; line-height: 1;">✅</span>
+            <div>
+              <div class="status-title" style="font-weight: 800; font-size: 0.92rem; color: #065f46;">Günü Tekrar Aç (Normal Sevkiyat)</div>
+              <div class="status-desc" style="font-size: 0.76rem; color: #047857; margin-top: 0.15rem;">Kısıtlamayı kaldırarak bu güne sevkiyat alımını serbest bırakır.</div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: flex-end; padding: 0.85rem 1.25rem;">
+        <button type="button" id="cancelDayStatusModalBtn" class="btn-secondary">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        12. TEHLİKE VE KURUMSAL İŞLEM ONAY MODALİ (CONFIRMATION MODAL)
        ========================================================================== -->
   <div id="confirmModal" class="modal-overlay" style="z-index: 999999 !important;">
@@ -747,6 +782,6 @@
   <!-- ÖRNEK/VARSAYILAN VERİ MODELİ -->
   <script src="js/mockData.js?v=1.3"></script>
   <!-- ANA UYGULAMA MANTIĞI -->
-  <script src="js/app.js?v=1.4"></script>
+  <script src="js/app.js?v=2.7"></script>
 </body>
 </html>

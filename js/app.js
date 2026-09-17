@@ -21,6 +21,8 @@ class ShipmentApp {
     this.statusFilter = 'ALL';
     this.editingShipmentId = null;
     this.transferringShipmentId = null;
+    this.autoScrollRafId = null;
+    this.autoScrollers = [];
 
     // 📺 SAYFA KİPLERİ: (isReadOnly = true -> Canlı İzleme Ekranı / false -> Yönetici Paneli)
     this.isReadOnly = document.body.classList.contains('mode-display') || window.location.pathname.includes('display.html');
@@ -111,6 +113,18 @@ class ShipmentApp {
 
     this.toastContainer = document.getElementById('toastContainer');
     this.weeklyNoteBannerContainer = document.getElementById('weeklyNoteBannerContainer');
+
+    // Gün Durumu (Şoför İzinli / Araç Serviste) Modal Elemanları
+    this.dayStatusModal = document.getElementById('dayStatusModal');
+    this.dayStatusModalTitle = document.getElementById('dayStatusModalTitle');
+    this.dayStatusModalDesc = document.getElementById('dayStatusModalDesc');
+    this.btnSetDriverOff = document.getElementById('btnSetDriverOff');
+    this.btnSetVehicleService = document.getElementById('btnSetVehicleService');
+    this.btnResetDayStatus = document.getElementById('btnResetDayStatus');
+    this.closeDayStatusModalBtn = document.getElementById('closeDayStatusModalBtn');
+    this.cancelDayStatusModalBtn = document.getElementById('cancelDayStatusModalBtn');
+    this.activeStatusDayIndex = null;
+    this.activeStatusDayName = '';
   }
 
   // --- 2. VERİ YÜKLEME VE SAKLAMA ---
@@ -975,8 +989,23 @@ class ShipmentApp {
           this.metricsDrawer.classList.add('collapsed');
           this.toggleMetricsDrawerBtn.innerHTML = '📊 Özet Metrikler & Fiyatlar ▼';
         }
+        setTimeout(() => this.initAutoScrollEngine(), 320);
       });
     }
+
+    window.addEventListener('resize', () => {
+      clearTimeout(this.resizeScrollTimer);
+      this.resizeScrollTimer = setTimeout(() => {
+        this.initAutoScrollEngine();
+      }, 250);
+    });
+
+    // Açık olan gün işlem menülerini dışarı tıklandığında kapat
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.day-menu-container')) {
+        document.querySelectorAll('.day-menu-dropdown.active').forEach(d => d.classList.remove('active'));
+      }
+    });
 
     if (this.searchInput) {
       this.searchInput.addEventListener('input', (e) => {
@@ -1059,6 +1088,39 @@ class ShipmentApp {
         this.transferForm.addEventListener('submit', (e) => {
           e.preventDefault();
           this.handleTransferSubmit();
+        });
+      }
+
+      // Gün Durumu (Şoför İzinli / Araç Serviste) Modal Event Listeners
+      if (this.btnSetDriverOff) {
+        this.btnSetDriverOff.addEventListener('click', () => {
+          if (this.activeStatusDayIndex !== null) {
+            this.setDayStatus(this.activeStatusDayIndex, 'DRIVER_OFF', this.activeStatusDayName);
+            this.closeDayStatusModal();
+          }
+        });
+      }
+      if (this.btnSetVehicleService) {
+        this.btnSetVehicleService.addEventListener('click', () => {
+          if (this.activeStatusDayIndex !== null) {
+            this.setDayStatus(this.activeStatusDayIndex, 'VEHICLE_SERVICE', this.activeStatusDayName);
+            this.closeDayStatusModal();
+          }
+        });
+      }
+      if (this.btnResetDayStatus) {
+        this.btnResetDayStatus.addEventListener('click', () => {
+          if (this.activeStatusDayIndex !== null) {
+            this.setDayStatus(this.activeStatusDayIndex, null, this.activeStatusDayName);
+            this.closeDayStatusModal();
+          }
+        });
+      }
+      if (this.closeDayStatusModalBtn) this.closeDayStatusModalBtn.addEventListener('click', () => this.closeDayStatusModal());
+      if (this.cancelDayStatusModalBtn) this.cancelDayStatusModalBtn.addEventListener('click', () => this.closeDayStatusModal());
+      if (this.dayStatusModal) {
+        this.dayStatusModal.addEventListener('click', (e) => {
+          if (e.target === this.dayStatusModal) this.closeDayStatusModal();
         });
       }
 
@@ -1227,6 +1289,40 @@ class ShipmentApp {
     });
   }
 
+  updateTransferDaySelectOptions(currentDayIndex) {
+    if (!this.inputTargetDay) return;
+    const days = this.getWeekDays();
+    this.inputTargetDay.innerHTML = '';
+
+    let firstAvailableDay = null;
+
+    days.forEach(day => {
+      const disabledInfo = this.getDayDisabledInfo(day.dayIndex);
+      const isCurrent = day.dayIndex === currentDayIndex;
+      const option = document.createElement('option');
+      option.value = day.dayIndex;
+
+      if (disabledInfo) {
+        const reasonText = disabledInfo.reason === 'DRIVER_OFF' ? '🚫 Şoför İzinli - Kapalı' : '🚚 Araç Serviste - Kapalı';
+        option.textContent = `${day.name} (${reasonText})`;
+        option.disabled = true;
+      } else if (isCurrent) {
+        option.textContent = `${day.name} (Mevcut Gün)`;
+        option.disabled = true;
+      } else {
+        option.textContent = day.name;
+        if (firstAvailableDay === null) {
+          firstAvailableDay = day.dayIndex;
+        }
+      }
+      this.inputTargetDay.appendChild(option);
+    });
+
+    if (firstAvailableDay !== null) {
+      this.inputTargetDay.value = firstAvailableDay;
+    }
+  }
+
   // --- SEVKİYAT AKTAR / TRANSFER METOTLARI ---
   openTransferModal(shipment) {
     if (this.isReadOnly || !shipment) return;
@@ -1247,10 +1343,7 @@ class ShipmentApp {
       this.transferShipmentInfoText.textContent = `Sevkiyat: "${shipment.customerName}" (${currentDayName} Günü)`;
     }
 
-    if (this.inputTargetDay) {
-      const nextDay = (shipment.dayOfWeek % 6) + 1;
-      this.inputTargetDay.value = nextDay;
-    }
+    this.updateTransferDaySelectOptions(shipment.dayOfWeek);
 
     if (this.inputTransferReason) {
       this.inputTransferReason.value = '';
@@ -1270,6 +1363,15 @@ class ShipmentApp {
     const targetDayIndex = parseInt(this.inputTargetDay.value, 10);
     const reason = this.inputTransferReason ? this.inputTransferReason.value.trim() : '';
 
+    const disabledInfo = this.getDayDisabledInfo(targetDayIndex);
+    if (disabledInfo) {
+      const msg = disabledInfo.reason === 'DRIVER_OFF'
+        ? '⚠️ Hedef günde Şoför İzinli / Yok olduğu için sevkiyat bu güne aktarılamaz!'
+        : '⚠️ Hedef günde Araç Serviste olduğu için sevkiyat bu güne aktarılamaz!';
+      alert(msg);
+      return;
+    }
+
     this.transferShipment(this.transferringShipmentId, targetDayIndex, reason);
     this.closeTransferModal();
   }
@@ -1286,6 +1388,15 @@ class ShipmentApp {
 
     if (oldDayIndex === targetDayIndex) {
       alert("Sevkiyat zaten seçilen günde yer almaktadır!");
+      return;
+    }
+
+    const disabledInfo = this.getDayDisabledInfo(targetDayIndex);
+    if (disabledInfo) {
+      const msg = disabledInfo.reason === 'DRIVER_OFF'
+        ? `Hedef gün (${newDayName}) Şoför İzinli / Yok olarak kapalıdır! Sevkiyat aktarılamaz.`
+        : `Hedef gün (${newDayName}) Araç Serviste olarak kapalıdır! Sevkiyat aktarılamaz.`;
+      alert(msg);
       return;
     }
 
@@ -1637,13 +1748,13 @@ class ShipmentApp {
   initThemeEngine() {
     this.themeToggleBtn = document.getElementById('themeToggleBtn');
     
-    // Varsayılan tema: dark (koyu)
-    const savedTheme = localStorage.getItem('gurkan_theme_mode_v2') || 'dark';
+    // Varsayılan tema: light (beyaz/açık)
+    const savedTheme = localStorage.getItem('gurkan_theme_mode_v3') || 'light';
     this.applyTheme(savedTheme, false);
 
     if (this.themeToggleBtn) {
       this.themeToggleBtn.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
         const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
         this.applyTheme(newTheme, true);
       });
@@ -1653,7 +1764,7 @@ class ShipmentApp {
   applyTheme(theme, showToastNotification = false) {
     document.documentElement.setAttribute('data-theme', theme);
     document.body.setAttribute('data-theme', theme);
-    localStorage.setItem('gurkan_theme_mode_v2', theme);
+    localStorage.setItem('gurkan_theme_mode_v3', theme);
 
     const toggleBtns = document.querySelectorAll('.theme-toggle-btn');
     toggleBtns.forEach(btn => {
@@ -1702,6 +1813,9 @@ class ShipmentApp {
         document.mozFullScreenElement ||
         document.msFullscreenElement
       );
+
+      document.body.classList.toggle('is-fullscreen-mode', isFullscreen);
+      document.documentElement.classList.toggle('is-fullscreen-mode', isFullscreen);
 
       fullscreenBtns.forEach(btn => {
         if (isFullscreen) {
@@ -2064,23 +2178,73 @@ class ShipmentApp {
     return this.disabledDays.some(d => d.weekKey === currentWeekKey && d.dayOfWeek === dayIndex);
   }
 
-  toggleDayDisabled(dayIndex, dayName) {
+  getDayDisabledInfo(dayIndex) {
+    const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
+    return this.disabledDays.find(d => d.weekKey === currentWeekKey && d.dayOfWeek === dayIndex) || null;
+  }
+
+  openDayStatusModal(dayIndex, dayName, dateStr) {
+    if (this.isReadOnly) return;
+    this.activeStatusDayIndex = dayIndex;
+    this.activeStatusDayName = dayName;
+
+    if (this.dayStatusModalTitle) {
+      this.dayStatusModalTitle.textContent = `📅 ${dayName.toUpperCase()} GÜNÜ SEVKİYAT DURUMU`;
+    }
+    if (this.dayStatusModalDesc) {
+      const disabledInfo = this.getDayDisabledInfo(dayIndex);
+      let statusDesc = 'Şu an normal sevkiyat planlamasına açık.';
+      if (disabledInfo) {
+        statusDesc = disabledInfo.reason === 'DRIVER_OFF'
+          ? '⚠️ Şu anda <strong style="color: #4f46e5;">"ŞOFÖR İZİNLİ"</strong> olarak kapalı.'
+          : '⚠️ Şu anda <strong style="color: #d97706;">"ARAÇ SERVİSTE"</strong> olarak kapalı.';
+      }
+      this.dayStatusModalDesc.innerHTML = `<strong>${dayName} (${dateStr})</strong> günü için durum seçiniz:<br><span style="font-size: 0.8rem; margin-top: 0.2rem; display: inline-block;">${statusDesc}</span>`;
+    }
+
+    if (this.dayStatusModal) this.dayStatusModal.classList.add('active');
+  }
+
+  closeDayStatusModal() {
+    if (this.dayStatusModal) this.dayStatusModal.classList.remove('active');
+    this.activeStatusDayIndex = null;
+    this.activeStatusDayName = '';
+  }
+
+  setDayStatus(dayIndex, statusType, dayName) {
     if (this.isReadOnly) return;
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
     const existingIndex = this.disabledDays.findIndex(d => d.weekKey === currentWeekKey && d.dayOfWeek === dayIndex);
 
-    if (existingIndex > -1) {
-      this.disabledDays.splice(existingIndex, 1);
-      this.addAuditLog('SERVICE', `🚫 Servis Açıldı`, `${dayName} günü tekrar sevkiyata açıldı.`, 'Yönetici');
-      this.showToast('Servis Açıldı', `${dayName} günü tekrar sevkiyata açıldı.`);
+    if (!statusType) {
+      if (existingIndex > -1) {
+        this.disabledDays.splice(existingIndex, 1);
+        this.addAuditLog('SERVICE', `✅ Gün Açıldı`, `${dayName} günü tekrar sevkiyata açıldı.`, 'Yönetici');
+        this.showToast('Sevkiyat Açıldı', `${dayName} günü tekrar normal sevkiyata açıldı.`, 'info');
+      }
     } else {
-      this.disabledDays.push({ weekKey: currentWeekKey, dayOfWeek: dayIndex });
-      this.addAuditLog('SERVICE', `🚫 Araç Serviste İle Kapatıldı`, `${dayName} günü sevk alımına kapatıldı.`, 'Yönetici');
-      this.showToast('Araç Serviste', `${dayName} günü için sevk alımı kapatıldı.`);
+      const entry = { weekKey: currentWeekKey, dayOfWeek: dayIndex, reason: statusType };
+      if (existingIndex > -1) {
+        this.disabledDays[existingIndex] = entry;
+      } else {
+        this.disabledDays.push(entry);
+      }
+      if (statusType === 'DRIVER_OFF') {
+        this.addAuditLog('SERVICE', `👨‍✈️ Şoför İzinli`, `${dayName} günü şoför izinli olarak sevk alımına kapatıldı.`, 'Yönetici');
+        this.showToast('Şoför İzinli', `${dayName} günü şoför izinli olarak kapatıldı. Sevk yazılamaz!`, 'warning');
+      } else {
+        this.addAuditLog('SERVICE', `🚚 Araç Serviste`, `${dayName} günü araç serviste olarak sevk alımına kapatıldı.`, 'Yönetici');
+        this.showToast('Araç Serviste', `${dayName} günü araç serviste olarak kapatıldı.`, 'warning');
+      }
     }
 
     this.saveData(true, 'UPDATE_DISABLED_DAYS');
     this.renderGridOnly();
+  }
+
+  toggleDayDisabled(dayIndex, dayName) {
+    const day = this.getWeekDays().find(d => d.dayIndex === dayIndex);
+    this.openDayStatusModal(dayIndex, dayName, day ? day.dateStr : '');
   }
 
   renderGridOnly() {
@@ -2088,10 +2252,21 @@ class ShipmentApp {
     const days = this.getWeekDays();
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
 
+    // Mevcut sütun içi kaydırma ve sayfa dikey kaydırma konumlarını hafızaya al
+    const scrollMap = {};
+    this.weeklyGridEl.querySelectorAll('.cards-dropzone').forEach(dz => {
+      const idx = dz.dataset.dayIndex;
+      if (idx) scrollMap[idx] = dz.scrollTop;
+    });
+    const currentWinScrollY = window.scrollY || document.documentElement.scrollTop;
+
     this.weeklyGridEl.innerHTML = '';
 
     days.forEach(day => {
-      const isDayDisabled = this.isDayDisabled(day.dayIndex);
+      const disabledInfo = this.getDayDisabledInfo(day.dayIndex);
+      const isDayDisabled = !!disabledInfo;
+      const isDriverOff = disabledInfo && disabledInfo.reason === 'DRIVER_OFF';
+      const isVehicleService = disabledInfo && (disabledInfo.reason === 'VEHICLE_SERVICE' || !disabledInfo.reason);
 
       const dayShipments = this.shipments.filter(s => {
         const itemWeekKey = s.weekKey || currentWeekKey;
@@ -2113,90 +2288,143 @@ class ShipmentApp {
       const orderRank = { '1. Sevk': 1, '2. Sevk': 2, '3. Sevk': 3, '4. Sevk': 4, 'Ek Sevk': 5 };
       
       dayShipments.sort((a, b) => {
-        // 1. Durum Önceliği: Aktif sevkler üstte (0), Teslim Edilenler altta (1), İptal/Aktarılanlar en dipte (2, 3)
-        const getStatusPriority = (item) => {
-          // Eğer yeni teslim edildiyse ve 5 sn bekleme süresindeyse yerinde (üstte) kalsın
-          if (this.recentlyDeliveredIds && this.recentlyDeliveredIds.has(item.id)) {
-            return 0;
-          }
-          // Eğer teslimden geri alındıysa ve 5 sn bekleme süresindeyse yerinde (altta) kalsın
-          if (this.recentlyRevertedIds && this.recentlyRevertedIds.has(item.id)) {
-            return 1;
-          }
-          if (item.isTransferredRecord) return 3;
-          if (item.status === 'İptal') return 2;
-          if (item.status === 'Teslim Edildi') return 1;
-          return 0; // Beklemede, Hazırlanıyor, Yolda (Aktif Sevkler)
-        };
+        // Yalnızca başka güne aktarılan gölge kayıtlar (isTransferredRecord) en altta listelenir
+        if (a.isTransferredRecord && !b.isTransferredRecord) return 1;
+        if (!a.isTransferredRecord && b.isTransferredRecord) return -1;
 
-        const statusDiff = getStatusPriority(a) - getStatusPriority(b);
-        if (statusDiff !== 0) return statusDiff;
+        // Sevk Sırası (1. Sevk, 2. Sevk, 3. Sevk, 4. Sevk, Ek Sevk)
+        const rankA = orderRank[a.shipmentOrder] || 99;
+        const rankB = orderRank[b.shipmentOrder] || 99;
+        if (rankA !== rankB) return rankA - rankB;
 
-        // 2. Kendi aralarında sevk sırasına göre sırala (1. Sevk -> 2. Sevk -> 3. Sevk...)
-        return (orderRank[a.shipmentOrder] || 99) - (orderRank[b.shipmentOrder] || 99);
+        // Teslim Edildi veya İptal durumları sırayı bozmaz; kartlar orijinal eklenme sırasına göre yerinde kalır
+        const timeA = new Date(a.createdAt || 0).getTime();
+        const timeB = new Date(b.createdAt || 0).getTime();
+        return timeA - timeB;
       });
 
       const activeDayShipmentsCount = dayShipments.filter(s => !s.isTransferredRecord).length;
       const isOverCapacity = activeDayShipmentsCount > 5 && !isDayDisabled;
       const capacityPercent = Math.min(100, Math.round((activeDayShipmentsCount / 5) * 100));
 
+      let statusBadgeText = activeDayShipmentsCount + ' Sevk';
+      if (isDriverOff) {
+        statusBadgeText = '👨‍✈️ ŞOFÖR İZİNLİ';
+      } else if (isVehicleService) {
+        statusBadgeText = '🚚 ARAÇ SERVİSTE';
+      } else if (isOverCapacity) {
+        statusBadgeText = 'Aşım (' + activeDayShipmentsCount + ')';
+      }
+
+      let toggleBtnIcon = '🚫';
+      let toggleBtnTitle = `${day.name} günü için Sevk Kapat / Şoför İzinli Belirle`;
+      if (isDriverOff) {
+        toggleBtnIcon = '👨‍✈️';
+        toggleBtnTitle = `${day.name} - Şoför Yok / İzinli (Durumu Değiştirmek İçin Tıklayın)`;
+      } else if (isVehicleService) {
+        toggleBtnIcon = '🚚';
+        toggleBtnTitle = `${day.name} - Araç Serviste (Durumu Değiştirmek İçin Tıklayın)`;
+      }
+
       const colEl = document.createElement('div');
-      colEl.className = `day-column ${day.isToday ? 'today' : ''} ${day.isPast ? 'past-day' : ''} ${isOverCapacity ? 'over-capacity' : ''} ${isDayDisabled ? 'is-out-of-service' : ''}`;
+      colEl.className = `day-column ${day.isToday ? 'today' : ''} ${day.isPast ? 'past-day' : ''} ${isOverCapacity ? 'over-capacity' : ''} ${isDayDisabled ? 'is-out-of-service' : ''} ${isDriverOff ? 'is-driver-off' : ''}`;
       colEl.dataset.dayIndex = day.dayIndex;
+      colEl.dataset.isPast = day.isPast ? 'true' : 'false';
 
       colEl.innerHTML = `
-        <div class="day-header ${day.isToday ? 'today-header' : ''} ${isOverCapacity ? 'over-capacity-header' : ''} ${isDayDisabled ? 'out-of-service-header' : ''}">
+        <div class="day-header ${day.isToday ? 'today-header' : ''} ${isOverCapacity ? 'over-capacity-header' : ''} ${isDayDisabled ? 'out-of-service-header' : ''} ${isDriverOff ? 'driver-off-header' : ''}">
           <div class="day-header-top">
-            <div class="day-title-group">
+            <div class="day-name-wrapper">
+              ${day.isToday ? `<span class="today-live-dot" title="Aktif Gün (Bugün)"></span>` : ''}
               <span class="day-name">${day.name}</span>
-              <span class="day-date">${day.dateStr}</span>
             </div>
             <div class="day-header-controls">
-              ${!this.isReadOnly ? `
-                <button class="toggle-service-btn ${isDayDisabled ? 'active' : ''}" title="${day.name} günü için Araç Serviste / Sevk İptali İşaretle">🚫</button>
-              ` : ''}
-              <button class="print-day-btn" title="${day.name} Yükleme Listesini Yazdır">🖨️</button>
-              <span class="shipment-count-badge ${isOverCapacity ? 'over-capacity-badge' : ''}">
-                ${isDayDisabled ? 'ARAÇ SERVİSTE' : (isOverCapacity ? 'Aşım (' + activeDayShipmentsCount + ')' : activeDayShipmentsCount + ' Sevk')}
+              <span class="shipment-count-badge ${isOverCapacity ? 'over-capacity-badge' : ''}" title="${day.isToday ? 'Bugünkü Toplam Sevk' : 'Toplam Sevk'}">
+                ${statusBadgeText}
               </span>
+              <div class="day-menu-container">
+                <button type="button" class="day-menu-btn ${isDayDisabled ? 'active' : ''} ${isDriverOff ? 'driver-off-btn' : ''}" title="${toggleBtnTitle}">
+                  ${isDriverOff ? '👨‍✈️' : isVehicleService ? '🚚' : '⋮'}
+                </button>
+                <div class="day-menu-dropdown">
+                  <button type="button" class="day-menu-item btn-print-action">
+                    <span class="item-icon">🖨️</span>
+                    <span>Listeyi Yazdır</span>
+                  </button>
+                  ${!this.isReadOnly ? `
+                    <button type="button" class="day-menu-item btn-status-action">
+                      <span class="item-icon">${isDriverOff ? '👨‍✈️' : isVehicleService ? '🚚' : '🚫'}</span>
+                      <span>${isDayDisabled ? 'Durumu Değiştir' : 'Sevk / Şoför Kapat'}</span>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
             </div>
           </div>
 
-          ${!isDayDisabled ? `
-            <div class="capacity-label">
-              <span>Kapasite</span>
-              <span>%${capacityPercent}</span>
+          <div class="day-header-mid">
+            <div class="day-date-wrapper">
+              <span class="day-date" title="Tarih">📅 ${day.dateStr}</span>
+              ${day.isToday ? `<span class="today-text-badge">BUGÜN</span>` : ''}
             </div>
-            <div class="capacity-progress-bar">
-              <div class="capacity-fill ${isOverCapacity ? 'over' : ''}" style="width: ${capacityPercent}%;"></div>
-            </div>
-          ` : ''}
+            ${!isDayDisabled ? `
+              <div class="capacity-stat">
+                <span class="cap-title">Kapasite</span>
+                <span class="cap-val">%${capacityPercent}</span>
+              </div>
+            ` : `
+              <div class="capacity-stat disabled-stat">
+                <span>${isDriverOff ? '👨‍✈️ İzinli' : '🚚 Serviste'}</span>
+              </div>
+            `}
+          </div>
+
+          <div class="capacity-progress-bar">
+            <div class="capacity-fill ${isOverCapacity ? 'over' : ''} ${isDriverOff ? 'driver-off-fill' : isVehicleService ? 'service-fill' : ''}" style="width: ${isDayDisabled ? 100 : capacityPercent}%;"></div>
+          </div>
         </div>
         <div class="cards-dropzone" data-day-index="${day.dayIndex}"></div>
       `;
 
-      if (!this.isReadOnly) {
-        const toggleBtn = colEl.querySelector('.toggle-service-btn');
-        if (toggleBtn) {
-          toggleBtn.addEventListener('click', (e) => {
+      // Tek Tuş Gün Menüsü Olayları (Yazdır & Sevk Durumu)
+      const menuBtn = colEl.querySelector('.day-menu-btn');
+      const menuDropdown = colEl.querySelector('.day-menu-dropdown');
+      if (menuBtn && menuDropdown) {
+        menuBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const wasActive = menuDropdown.classList.contains('active');
+          document.querySelectorAll('.day-menu-dropdown.active').forEach(d => d.classList.remove('active'));
+          if (!wasActive) {
+            menuDropdown.classList.add('active');
+          }
+        });
+
+        const printBtn = menuDropdown.querySelector('.btn-print-action');
+        if (printBtn) {
+          printBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.toggleDayDisabled(day.dayIndex, day.name);
+            menuDropdown.classList.remove('active');
+            this.printDayManifest(day.name, day.dateStr, dayShipments.filter(s => !s.isTransferredRecord));
+          });
+        }
+
+        const statusBtn = menuDropdown.querySelector('.btn-status-action');
+        if (statusBtn) {
+          statusBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            menuDropdown.classList.remove('active');
+            this.openDayStatusModal(day.dayIndex, day.name, day.dateStr);
           });
         }
       }
-
-      colEl.querySelector('.print-day-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.printDayManifest(day.name, day.dateStr, dayShipments.filter(s => !s.isTransferredRecord));
-      });
 
       const dropzone = colEl.querySelector('.cards-dropzone');
 
       if (isDayDisabled) {
         dropzone.innerHTML = `
-          <div class="out-of-service-banner">
-            <span class="title">⚠️ ARAÇ SERVİSTE / SEVK YOK</span>
-            <span class="desc">Araç bakımda veya bu gün için sevk alımı kapatılmıştır.</span>
+          <div class="out-of-service-banner ${isDriverOff ? 'driver-off-banner' : ''}">
+            <span class="title">${isDriverOff ? '👨‍✈️ ŞOFÖR YOK / İZİNLİ' : '⚠️ ARAÇ SERVİSTE / SEVK YOK'}</span>
+            <span class="desc">${isDriverOff ? 'Şoför izinli olduğundan bu gün için sevkiyat alımı tamamen kapatılmıştır.' : 'Araç bakımda veya bu gün için sevk alımı kapatılmıştır.'}</span>
           </div>
         `;
         if (dayShipments.length > 0) {
@@ -2219,6 +2447,134 @@ class ShipmentApp {
       }
       
       this.weeklyGridEl.appendChild(colEl);
+    });
+
+    // Kaydırma konumlarını geri yükle
+    this.weeklyGridEl.querySelectorAll('.cards-dropzone').forEach(dz => {
+      const idx = dz.dataset.dayIndex;
+      if (idx && scrollMap[idx] !== undefined) {
+        dz.scrollTop = scrollMap[idx];
+      }
+    });
+    if ((window.scrollY || document.documentElement.scrollTop) !== currentWinScrollY) {
+      window.scrollTo(0, currentWinScrollY);
+    }
+
+    this.initAutoScrollEngine();
+  }
+
+  // --- 4.1 DOLU SÜTUNLAR İÇİN AKILLI VE YAVAŞ OTOMATİK KAYDIRMA MOTORU (SMART AUTO-SCROLL ENGINE) ---
+  initAutoScrollEngine() {
+    if (this.autoScrollRafId) {
+      cancelAnimationFrame(this.autoScrollRafId);
+      this.autoScrollRafId = null;
+    }
+    this.autoScrollers = [];
+
+    // DOM çiziminin ve kart yüksekliklerinin tarayıcı tarafından hesaplanmasını bekle
+    requestAnimationFrame(() => {
+      if (!this.weeklyGridEl) return;
+
+      const dropzones = this.weeklyGridEl.querySelectorAll('.cards-dropzone');
+      dropzones.forEach(dropzone => {
+        const colEl = dropzone.closest('.day-column');
+
+        // Günü geçen sevk sütunları için otomatik kaydırma olmasın (sadece o gün ve sonraki günler için çalışsın)
+        if (colEl && (colEl.classList.contains('past-day') || colEl.dataset.isPast === 'true')) {
+          dropzone.scrollTop = 0;
+          return;
+        }
+
+        const maxScroll = dropzone.scrollHeight - dropzone.clientHeight;
+        // Yalnızca gerçekten dikey taşma yapan (içeriği alana sığmayan) dolu sütunlar için devreye gir
+        if (maxScroll > 12) {
+          const currentPos = dropzone.scrollTop || 0;
+          const scroller = {
+            el: dropzone,
+            col: colEl,
+            direction: currentPos >= (maxScroll - 15) ? 'up' : 'down',
+            speedDown: 0.38, // ~23px / saniye (okunabilir, sakin ve akıcı kayış)
+            speedUp: 0.6,    // ~36px / saniye (yukarı yumuşak dönüş)
+            pauseUntil: Date.now() + 4500, // Sayfa açılışında en üstte 4.5 sn bekle
+            isHovered: false,
+            currentScroll: currentPos
+          };
+
+          const handleEnter = () => {
+            scroller.isHovered = true;
+          };
+
+          const handleLeave = () => {
+            scroller.isHovered = false;
+            scroller.pauseUntil = Date.now() + 2500; // Fare sütundan ayrıldıktan 2.5 sn sonra devam et
+            scroller.currentScroll = dropzone.scrollTop;
+            const currentMax = dropzone.scrollHeight - dropzone.clientHeight;
+            if (dropzone.scrollTop >= currentMax - 10) {
+              scroller.direction = 'up';
+            } else if (dropzone.scrollTop <= 10) {
+              scroller.direction = 'down';
+            }
+          };
+
+          const handleWheel = () => {
+            scroller.pauseUntil = Date.now() + 3500; // Kullanıcı tekerlekle kaydırdıysa 3.5 sn bekle
+            scroller.currentScroll = dropzone.scrollTop;
+          };
+
+          if (colEl) {
+            colEl.addEventListener('mouseenter', handleEnter);
+            colEl.addEventListener('mouseleave', handleLeave);
+            colEl.addEventListener('wheel', handleWheel, { passive: true });
+          }
+
+          this.autoScrollers.push(scroller);
+        }
+      });
+
+      if (this.autoScrollers.length === 0) return;
+
+      const loop = () => {
+        // Modal açıksa veya kullanıcı kart sürüklüyorsa kaydırmayı duraklat
+        const isModalOpen = !!document.querySelector('.modal-card.active') || !!document.querySelector('.modal-overlay.active');
+        const isDragging = !!this.draggedShipmentId;
+        const now = Date.now();
+
+        if (!isModalOpen && !isDragging) {
+          this.autoScrollers.forEach(s => {
+            if (s.isHovered) return;
+            if (now < s.pauseUntil) return;
+
+            const maxScroll = s.el.scrollHeight - s.el.clientHeight;
+            if (maxScroll <= 12) return;
+
+            if (s.direction === 'down') {
+              s.currentScroll += s.speedDown;
+              if (s.currentScroll >= maxScroll) {
+                s.currentScroll = maxScroll;
+                s.el.scrollTop = maxScroll;
+                s.direction = 'up';
+                s.pauseUntil = now + 4000; // En altta 4 saniye bekle
+              } else {
+                s.el.scrollTop = s.currentScroll;
+              }
+            } else if (s.direction === 'up') {
+              s.currentScroll -= s.speedUp;
+              if (s.currentScroll <= 0) {
+                s.currentScroll = 0;
+                s.el.scrollTop = 0;
+                s.direction = 'down';
+                s.pauseUntil = now + 5000; // En üstte 5 saniye bekle
+              } else {
+                s.el.scrollTop = s.currentScroll;
+              }
+            }
+          });
+        }
+
+        this.autoScrollRafId = requestAnimationFrame(loop);
+      };
+
+      this.autoScrollRafId = requestAnimationFrame(loop);
     });
   }
 
@@ -2462,81 +2818,50 @@ class ShipmentApp {
     );
 
     // Bekleyen eski timer varsa iptal et
-    if (!this.pendingMoveTimers) this.pendingMoveTimers = {};
-    if (this.pendingMoveTimers[id]) {
+    if (this.pendingMoveTimers && this.pendingMoveTimers[id]) {
       clearTimeout(this.pendingMoveTimers[id]);
       delete this.pendingMoveTimers[id];
     }
-    if (!this.recentlyDeliveredIds) this.recentlyDeliveredIds = new Set();
-    if (!this.recentlyRevertedIds) this.recentlyRevertedIds = new Set();
 
-    if (nextStatus === 'Teslim Edildi') {
-      this.recentlyRevertedIds.delete(id);
-      this.recentlyDeliveredIds.add(id);
+    // Kartı DOM içinde anında güncelle (Sayfa veya sütun kaydırmasını kesinlikle sıfırlamaz veya bozmaz)
+    const cardEl = document.querySelector(`.shipment-card[data-id="${id}"]`);
+    if (cardEl) {
+      const isCancelled = nextStatus === 'İptal';
+      const isDelivered = nextStatus === 'Teslim Edildi';
+      const isPreparing = nextStatus === 'Hazırlanıyor';
+      const isTransferredRecord = !!shipment.isTransferredRecord;
 
-      this.saveData(true, 'UPDATE', shipment);
-      this.render();
+      cardEl.classList.remove('is-cancelled', 'is-delivered', 'is-preparing', 'is-new', 'just-delivered-anim');
+      if (isCancelled) cardEl.classList.add('is-cancelled');
+      if (isDelivered) cardEl.classList.add('is-delivered', 'just-delivered-anim');
+      if (isPreparing) cardEl.classList.add('is-preparing');
 
-      const cardEl = document.querySelector(`.shipment-card[data-id="${id}"]`);
-      if (cardEl) {
-        cardEl.classList.add('just-delivered-anim');
+      const floatingBadge = cardEl.querySelector('.floating-new-badge-on-top');
+      if (floatingBadge) floatingBadge.remove();
+
+      const statusPill = cardEl.querySelector('.status-pill');
+      if (statusPill) {
+        statusCycle.forEach(st => {
+          const sSlug = st.toLowerCase().replace(/\s+/g, '-').replace(/ı/g, 'i').replace(/ş/g, 's');
+          statusPill.classList.remove(`status-${sSlug}`);
+        });
+        const nextSlug = nextStatus.toLowerCase().replace(/\s+/g, '-').replace(/ı/g, 'i').replace(/ş/g, 's');
+        statusPill.classList.add(`status-${nextSlug}`);
+
+        let statusText = nextStatus;
+        if (isTransferredRecord) statusText = '↗️ AKTARILDI';
+        else if (isDelivered) statusText = '✓ TESLİM EDİLDİ';
+        else if (isPreparing) statusText = '⚡ HAZIRLANIYOR';
+        else if (isCancelled) statusText = '✕ İPTAL EDİLDİ';
+        else if (nextStatus === 'Beklemede') statusText = '⏳ BEKLEMEDE';
+        else if (nextStatus === 'Yolda') statusText = '🚛 YOLDA';
+
+        statusPill.innerHTML = `<span>${statusText}</span>`;
       }
-
-      // 5.0 saniye yerinde bekle, sonra animasyonla alta kaydır
-      this.pendingMoveTimers[id] = setTimeout(() => {
-        const cardBeforeMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
-        if (cardBeforeMove) {
-          cardBeforeMove.classList.add('moving-down-anim');
-        }
-
-        setTimeout(() => {
-          this.recentlyDeliveredIds.delete(id);
-          delete this.pendingMoveTimers[id];
-          this.render();
-
-          const cardAfterMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
-          if (cardAfterMove) {
-            cardAfterMove.classList.add('just-delivered-anim');
-          }
-        }, 220);
-      }, 5000);
-    } else if (prevStatus === 'Teslim Edildi' || prevStatus === 'İptal') {
-      // Teslim Edildi veya İptal durumundan geri aktif duruma alındığında
-      this.recentlyDeliveredIds.delete(id);
-      this.recentlyRevertedIds.add(id);
-
-      this.saveData(true, 'UPDATE', shipment);
-      this.render();
-
-      const cardEl = document.querySelector(`.shipment-card[data-id="${id}"]`);
-      if (cardEl) {
-        cardEl.classList.add('reverting-hold-anim');
-      }
-
-      // 5.0 saniye altta bekle, sonra animasyonla yukarı orijinal sırasına kaydır
-      this.pendingMoveTimers[id] = setTimeout(() => {
-        const cardBeforeMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
-        if (cardBeforeMove) {
-          cardBeforeMove.classList.add('moving-up-anim');
-        }
-
-        setTimeout(() => {
-          this.recentlyRevertedIds.delete(id);
-          delete this.pendingMoveTimers[id];
-          this.render();
-
-          const cardAfterMove = document.querySelector(`.shipment-card[data-id="${id}"]`);
-          if (cardAfterMove) {
-            cardAfterMove.classList.add('moving-up-anim');
-          }
-        }, 220);
-      }, 5000);
-    } else {
-      this.recentlyDeliveredIds.delete(id);
-      this.recentlyRevertedIds.delete(id);
-      this.saveData(true, 'UPDATE', shipment);
-      this.render();
     }
+
+    this.saveData(true, 'UPDATE', shipment);
+    this.updateDashboardMetrics();
 
     if (window.syncManager) {
       window.syncManager.playAlertSound('update_shipment');
@@ -2594,7 +2919,11 @@ class ShipmentApp {
       if (!draggedId || !targetDayIndex) return;
 
       if (this.isDayDisabled(targetDayIndex)) {
-        alert("Bu gün araç serviste/sevk kapalı olarak işaretlendiği için sevkiyat bu güne taşınamaz!");
+        const disabledInfo = this.getDayDisabledInfo(targetDayIndex);
+        const reasonMsg = disabledInfo && disabledInfo.reason === 'DRIVER_OFF'
+          ? "⚠️ Bu gün Şoför İzinli / Yok olarak işaretlendiği için sevkiyat bu güne taşınamaz!"
+          : "⚠️ Bu gün Araç Serviste / Sevk Kapalı olarak işaretlendiği için sevkiyat bu güne taşınamaz!";
+        alert(reasonMsg);
         this.render();
         return;
       }
@@ -2680,6 +3009,42 @@ class ShipmentApp {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 
+  updateDaySelectOptions(selectedDay = null) {
+    if (!this.inputDaySelect) return;
+    const days = this.getWeekDays();
+    this.inputDaySelect.innerHTML = '';
+
+    let firstAvailableDay = null;
+
+    days.forEach(day => {
+      const disabledInfo = this.getDayDisabledInfo(day.dayIndex);
+      const option = document.createElement('option');
+      option.value = day.dayIndex;
+
+      if (disabledInfo) {
+        const reasonText = disabledInfo.reason === 'DRIVER_OFF' ? '🚫 Şoför İzinli - Kapalı' : '🚚 Araç Serviste - Kapalı';
+        option.textContent = `${day.name} (${reasonText})`;
+        if (selectedDay !== null && day.dayIndex === selectedDay) {
+          option.disabled = false;
+        } else {
+          option.disabled = true;
+        }
+      } else {
+        option.textContent = day.name;
+        if (firstAvailableDay === null) {
+          firstAvailableDay = day.dayIndex;
+        }
+      }
+      this.inputDaySelect.appendChild(option);
+    });
+
+    if (selectedDay !== null && selectedDay !== undefined) {
+      this.inputDaySelect.value = selectedDay;
+    } else if (firstAvailableDay !== null) {
+      this.inputDaySelect.value = firstAvailableDay;
+    }
+  }
+
   // --- 5. MODAL FORM & ACTIONS ---
   openModal(shipmentToEdit = null) {
     if (this.isReadOnly) return;
@@ -2702,6 +3067,7 @@ class ShipmentApp {
       if (this.modalTitle) this.modalTitle.textContent = 'SEVKİYAT DÜZENLE';
       
       const s = shipmentToEdit;
+      this.updateDaySelectOptions(s.dayOfWeek);
       if (this.inputDaySelect) this.inputDaySelect.value = s.dayOfWeek;
       if (this.inputOrderSelect) this.inputOrderSelect.value = s.shipmentOrder;
       
@@ -2717,9 +3083,9 @@ class ShipmentApp {
       if (this.modalTitle) this.modalTitle.textContent = 'YENİ SEVKİYAT GİRİŞİ';
       if (this.shipmentForm) this.shipmentForm.reset();
       
-      const defaultDay = 1;
-      if (this.inputDaySelect) this.inputDaySelect.value = defaultDay;
-      const suggestedOrder = this.getNextAvailableOrder(defaultDay);
+      this.updateDaySelectOptions(null);
+      const chosenDay = this.inputDaySelect && this.inputDaySelect.value ? parseInt(this.inputDaySelect.value, 10) : 1;
+      const suggestedOrder = this.getNextAvailableOrder(chosenDay);
       if (this.inputOrderSelect) this.inputOrderSelect.value = suggestedOrder;
       
       document.getElementById('inputStatus').value = 'Beklemede';
@@ -2757,6 +3123,18 @@ class ShipmentApp {
     if (!customerName || !deliveryAddress || !representative) {
       alert("Lütfen müşteri unvanını, pazarlamacıyı ve adresi tam giriniz!");
       return;
+    }
+
+    const disabledInfo = this.getDayDisabledInfo(dayOfWeek);
+    if (disabledInfo) {
+      const isSelf = this.editingShipmentId && this.shipments.find(s => s.id === this.editingShipmentId)?.dayOfWeek === dayOfWeek;
+      if (!isSelf) {
+        const msg = disabledInfo.reason === 'DRIVER_OFF'
+          ? '⚠️ Seçilen günde Şoför İzinli / Yok olduğu için bu güne sevkiyat eklenemez veya sevk yazılamaz!'
+          : '⚠️ Seçilen günde Araç Serviste olduğu için bu güne sevkiyat eklenemez!';
+        alert(msg);
+        return;
+      }
     }
 
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
