@@ -2471,9 +2471,10 @@ class ShipmentApp {
     }
     this.autoScrollers = [];
 
-    // DOM çiziminin ve kart yüksekliklerinin tarayıcı tarafından hesaplanmasını bekle
     requestAnimationFrame(() => {
       if (!this.weeklyGridEl) return;
+      // Mobilde tüm sevkler dikey doğal akışta tam gösterildiği için kolon içi otomatik kaydırmaya gerek yoktur
+      if (window.innerWidth <= 768) return;
 
       const dropzones = this.weeklyGridEl.querySelectorAll('.cards-dropzone');
       dropzones.forEach(dropzone => {

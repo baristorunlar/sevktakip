@@ -2367,12 +2367,55 @@ body, body *,
 /* --------------------------------------------------------------------------
    8. MOBİL & TABLET %100 RESPONSIVE MEDYA SORGULARI (BREAKPOINTS)
    -------------------------------------------------------------------------- */
-@media (max-width: 1200px) {
-  .weekly-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; }
+
+/* TABLET & ORTA BOY EKRANLAR (1100px ve altı) */
+@media (max-width: 1100px) {
+  html, body {
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .calendar-wrapper {
+    height: auto !important;
+    min-height: auto !important;
+    flex: none !important;
+    overflow: visible !important;
+    padding: 0 1rem 2rem 1rem !important;
+    margin: 0.5rem auto 1rem !important;
+  }
+
+  .weekly-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-rows: auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    flex: none !important;
+    gap: 0.85rem !important;
+    overflow: visible !important;
+  }
+
+  .day-column {
+    height: auto !important;
+    min-height: 380px !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .cards-dropzone {
+    height: auto !important;
+    min-height: 120px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
 }
 
 @media (max-width: 900px) {
-  /* ULTRA KULLANICI DOSTU KOMPAKT MOBİL ÜST MENÜ (SIFIR DİKEY YER KAPLAMA) */
+  /* ULTRA KULLANICI DOSTU KOMPAKT MOBİL ÜST MENÜ */
   .app-header.compact-header {
     padding: 0.35rem 0.6rem;
     min-height: auto;
@@ -2479,18 +2522,30 @@ body, body *,
   }
 
   .calendar-wrapper {
-    padding: 0 0.5rem;
-    margin-top: 0.5rem;
+    padding: 0 0.5rem 2rem 0.5rem !important;
+    margin-top: 0.5rem !important;
   }
 
   .weekly-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+  }
+
+  .day-column {
+    min-height: 320px !important;
   }
 }
 
-@media (max-width: 600px) {
-  /* TELEFON DİK KONUMU İÇİN ÖZEL MİNİMAL MOBİL TASARIM */
+@media (max-width: 650px) {
+  /* TELEFON DİK KONUMU İÇİN ÖZEL MİNİMAL VE KUSURSUZ MOBİL TASARIM */
+  html, body {
+    height: auto !important;
+    min-height: 100vh !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
   .app-header.compact-header {
     padding: 0.3rem 0.5rem;
   }
@@ -2524,9 +2579,88 @@ body, body *,
     gap: 0.35rem;
   }
 
+  /* MOBİLDE TÜM GÜNLER DİKEY AKIŞTA HER SEVKİYATI NET GÖSTERECEK ŞEKİLDE */
+  .calendar-wrapper {
+    padding: 0 0.4rem 2.5rem 0.4rem !important;
+    margin-top: 0.4rem !important;
+    height: auto !important;
+    min-height: auto !important;
+    flex: none !important;
+    overflow: visible !important;
+  }
+
   .weekly-grid {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: auto !important;
+    flex: none !important;
+    gap: 0.95rem !important;
+    overflow: visible !important;
+  }
+
+  .day-column {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 12px !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08) !important;
+    width: 100% !important;
+  }
+
+  .day-header {
+    height: auto !important;
+    min-height: 74px !important;
+    max-height: none !important;
+    padding: 0.55rem 0.75rem 0.5rem !important;
+    border-top-left-radius: 11px !important;
+    border-top-right-radius: 11px !important;
+  }
+
+  .cards-dropzone {
+    height: auto !important;
+    min-height: 60px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    flex: none !important;
+    padding: 0.55rem 0.5rem 0.65rem !important;
+    gap: 0.55rem !important;
+  }
+
+  .shipment-card {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    padding: 0.55rem 0.65rem !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  .card-customer-title {
+    font-size: 0.92rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .district-pill {
+    font-size: 0.74rem !important;
+    padding: 0.28rem 0.55rem !important;
+  }
+
+  .card-meta-bar {
+    flex-wrap: wrap !important;
+    gap: 0.3rem !important;
+  }
+
+  .card-footer {
+    flex-wrap: wrap !important;
+    gap: 0.35rem !important;
+  }
+
+  .empty-day-state {
+    padding: 0.9rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    margin: 0.2rem 0 !important;
   }
 
   .toast-container {
