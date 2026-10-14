@@ -3331,30 +3331,49 @@ class ShipmentApp {
     }, { offset: Number.NEGATIVE_INFINITY }).element;
   }
 
+  getTodayDayIndex() {
+    const today = new Date();
+    const day = today.getDay(); // 0: Pazar, 1: Pazartesi, 2: Salı, 3: Çarşamba, 4: Perşembe, 5: Cuma, 6: Cumartesi
+    if (day >= 1 && day <= 6) {
+      return day;
+    }
+    return 1; // Pazar ise varsayılan Pazartesi
+  }
+
   updateDaySelectOptions(selectedDay = null) {
     if (!this.inputDaySelect) return;
     const days = this.getWeekDays();
     this.inputDaySelect.innerHTML = '';
 
     let firstAvailableDay = null;
+    let todayAvailableDay = null;
+
+    // Aktif haftada "Bugün" olan günü bul, yoksa haftanın gününe göre eşleştir (Örn: Perşembe ise 4)
+    const todayDayObj = days.find(d => d.isToday);
+    const preferredTodayIndex = todayDayObj ? todayDayObj.dayIndex : this.getTodayDayIndex();
 
     days.forEach(day => {
       const disabledInfo = this.getDayDisabledInfo(day.dayIndex);
       const option = document.createElement('option');
       option.value = day.dayIndex;
 
+      const dayLabel = day.isToday ? `${day.name} (Bugün)` : day.name;
+
       if (disabledInfo) {
         const reasonText = disabledInfo.reason === 'DRIVER_OFF' ? '🚫 Şoför İzinli - Kapalı' : '🚚 Araç Serviste - Kapalı';
-        option.textContent = `${day.name} (${reasonText})`;
+        option.textContent = `${dayLabel} (${reasonText})`;
         if (selectedDay !== null && day.dayIndex === selectedDay) {
           option.disabled = false;
         } else {
           option.disabled = true;
         }
       } else {
-        option.textContent = day.name;
+        option.textContent = dayLabel;
         if (firstAvailableDay === null) {
           firstAvailableDay = day.dayIndex;
+        }
+        if (day.dayIndex === preferredTodayIndex) {
+          todayAvailableDay = day.dayIndex;
         }
       }
       this.inputDaySelect.appendChild(option);
@@ -3362,13 +3381,15 @@ class ShipmentApp {
 
     if (selectedDay !== null && selectedDay !== undefined) {
       this.inputDaySelect.value = selectedDay;
+    } else if (todayAvailableDay !== null) {
+      this.inputDaySelect.value = todayAvailableDay;
     } else if (firstAvailableDay !== null) {
       this.inputDaySelect.value = firstAvailableDay;
     }
   }
 
   // --- 5. MODAL FORM & ACTIONS ---
-  openModal(shipmentToEdit = null) {
+  openModal(shipmentToEdit = null, defaultDayIndex = null) {
     if (this.isReadOnly) return;
 
     const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
@@ -3405,7 +3426,7 @@ class ShipmentApp {
       if (this.modalTitle) this.modalTitle.textContent = 'YENİ SEVKİYAT GİRİŞİ';
       if (this.shipmentForm) this.shipmentForm.reset();
       
-      this.updateDaySelectOptions(null);
+      this.updateDaySelectOptions(defaultDayIndex);
       const chosenDay = this.inputDaySelect && this.inputDaySelect.value ? parseInt(this.inputDaySelect.value, 10) : 1;
       const suggestedOrder = this.getNextAvailableOrder(chosenDay);
       if (this.inputOrderSelect) this.inputOrderSelect.value = suggestedOrder;
