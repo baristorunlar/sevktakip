@@ -537,7 +537,10 @@ class SyncManager {
       localStorage.setItem('sevkiyat_last_mutation_time', remoteTime.toString());
       this.lastLocalMutationTime = remoteTime;
 
-      this.triggerListeners({ action: 'REMOTE_LIVE_UPDATE' });
+      this.triggerListeners({
+        action: payload.action || 'REMOTE_LIVE_UPDATE',
+        data: payload.customPayload || payload.data
+      });
     } else {
       this.pullFromSupabaseDB(false);
     }
@@ -545,6 +548,8 @@ class SyncManager {
     const addedCustomer = payload.customerName || (payload.customPayload && payload.customPayload.customerName);
     if (payload.action === 'ADD' && addedCustomer) {
       this.announceNewShipment(addedCustomer);
+    } else if (payload.action === 'MOVE') {
+      this.playAlertSound('update_shipment');
     }
   }
 

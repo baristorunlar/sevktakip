@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="images/logo.png">
   
   <!-- Kurumsal Stil Dosyası -->
-  <link rel="stylesheet" href="css/style.css?v=5.9">
+  <link rel="stylesheet" href="css/style.css?v=6.2">
   
   <!-- Supabase JS Client (Canlı Veritabanı Senkronizasyonu İçin) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,58 +26,89 @@
 <body class="mode-admin">
 
   <!-- ==========================================================================
-       1. ULTRA-COMPACT SLIM EXECUTIVE HEADER (HARMONIZED BUTTONS)
+       1. ENTEGRE KOMUTA ÜST BARI (4 BÖLGELİ ORANTILI MASAÜSTÜ & MOBİL KOKPİT)
        ========================================================================== -->
-  <header class="app-header compact-header">
+  <header class="app-header compact-header command-header">
     <div class="header-container">
+      <!-- 1. BÖLGE (SOL): Kurumsal Logo & Birleşik Canlı Durum Kapsülü -->
       <div class="brand-section">
-        <div class="brand-logo-wrapper">
+        <div class="brand-logo-wrapper" title="Gürkan Yapı Malzemeleri">
           <img src="images/logo.png" alt="Gürkan Yapı Logo" class="brand-logo-img">
         </div>
-        <div class="brand-titles">
-          <h1>GÜRKAN YAPI MALZEMELERİ</h1>
-        </div>
-        <div class="panel-mode-badge admin-badge" id="currentUserBadge" title="Giriş Yapan Aktif Kullanıcı ve Yetki Düzeyi">
-          <span>👑 YÖNETİCİ PANELİ</span>
-        </div>
-        <div class="sync-badge" title="Gerçek Zamanlı Veritabanı Senkronizasyonu Aktif">
-          <span class="pulse-dot"></span>
-          <span>CANLI</span>
-        </div>
-        <div class="live-clock-badge" title="Anlık Canlı Sistem Saati ve Saniyesi">
-          <span class="clock-icon">🕒</span>
-          <span id="liveClock">00:00:00</span>
+        <div class="header-status-capsule">
+          <div class="panel-mode-badge admin-badge" id="currentUserBadge" title="Giriş Yapan Aktif Kullanıcı ve Yetki Düzeyi">
+            <span>YÖNETİCİ PANELİ</span>
+          </div>
+          <span class="capsule-sep"></span>
+          <div class="sync-badge" title="Gerçek Zamanlı Veritabanı Senkronizasyonu Aktif">
+            <span class="pulse-dot"></span>
+            <span>CANLI</span>
+          </div>
+          <span class="capsule-sep clock-sep"></span>
+          <div class="live-clock-badge" title="Anlık Canlı Sistem Saati ve Saniyesi">
+            <span class="clock-icon">🕒</span>
+            <span id="liveClock">00:00:00</span>
+          </div>
         </div>
       </div>
 
+      <!-- 2. BÖLGE (ORTA-SOL): Entegre Hafta Gezgini & Özet Metrik Çekmecesi -->
+      <div class="header-command-center">
+        <div class="week-navigator">
+          <div class="week-stepper-pill">
+            <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◄</button>
+            <span id="weekTitle" class="week-title">12 - 17 Ağustos 2026</span>
+            <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">►</button>
+          </div>
+          <button id="todayWeekBtn" class="btn-header-pill today-pill-btn" title="Aktif Haftaya Dön">Bu Hafta</button>
+          <button id="toggleMetricsDrawerBtn" class="btn-header-pill metrics-pill-btn" title="Haftalık Özet Metrikleri Göster/Gizle">
+            Özet Metrikler ▼
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. BÖLGE (ORTA-SAĞ): Esnek Orantılı Arama & Durum Filtresi -->
+      <div class="header-search-zone">
+        <div class="search-filter-group">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Müşteri, adres, temsilci ara...">
+          </div>
+          <select id="filterStatusSelect" class="filter-select" title="Sevkiyat Durumuna Göre Filtrele">
+            <option value="ALL">Tüm Durumlar</option>
+            <option value="Beklemede">Beklemede</option>
+            <option value="Hazırlanıyor">Hazırlanıyor</option>
+            <option value="Yolda">Yolda</option>
+            <option value="Teslim Edildi">Teslim Edildi</option>
+            <option value="İptal">İptal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 4. BÖLGE (SAĞ): Tam Ekran, Ayarlar, Çıkış & Yeni Sevkiyat -->
       <div class="header-actions">
-        <button id="fullscreenToggleBtn" class="btn-header-tool fullscreen-toggle-btn" title="Tam Ekrana Geç (F11)">
-          <span class="fullscreen-icon">⛶</span> <span class="fullscreen-text">Tam Ekran</span>
+        <button id="fullscreenToggleBtnHeader" class="fullscreen-toggle-btn header-elite-btn" title="Tam Ekrana Geç / Küçült (F11)">
+          <svg class="header-btn-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+          <span class="fullscreen-text">Tam Ekran</span>
         </button>
-        <button id="themeToggleBtn" class="btn-header-tool theme-toggle-btn" title="Karanlık / Aydınlık Tema Geçişi">
-          <span class="theme-icon">🌙</span> <span class="theme-text">Koyu</span>
+        <button id="openSettingsBtn" class="btn-header-tool settings-btn header-elite-btn" title="Sistem, Görünüm, Ses, Oturum ve İzin Ayarları">
+          <svg class="header-btn-svg svg-settings-cog" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span class="btn-text">Ayarlar</span>
         </button>
-        <a href="index.html" class="btn-switch-mode display-switch" title="Sevkiyat Canlı Bilgi & İzleme Ekranına Geçin">
-          İzleme Ekranı
-        </a>
-        <button id="btnSwitchUser" class="btn-header-tool" title="Farklı bir personelle hızlı giriş yapın">
-          Kullanıcı Değiştir
+        <button id="btnLogoutHeader" class="btn-header-tool logout-btn logout-action-btn header-elite-btn" title="Oturumu Kapat ve İzleme Ekranına Dön">
+          <svg class="header-btn-svg svg-logout" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span class="btn-text">Çıkış</span>
         </button>
-        <button id="openSettingsBtn" class="btn-header-tool settings-btn" title="Kullanıcı İzinleri, Ses, Loglar ve Akaryakıt Ayarları">
-          Sistem Ayarları
-        </button>
-        <button id="btnLogoutAdmin" class="btn-header-tool logout-btn" title="Yönetici oturumunu kapatın">
-          Oturumu Kapat
-        </button>
-        <button id="newShipmentBtn" class="btn-primary">
-          <span>YENİ SEVKİYAT EKLE</span>
+        <button id="newShipmentBtn" class="btn-primary highlight-add header-elite-primary-btn" title="Yeni Sevkiyat Planla">
+          <svg class="header-btn-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span class="btn-text">YENİ SEVKİYAT</span>
         </button>
       </div>
     </div>
   </header>
 
   <!-- ==========================================================================
-       2. KONTROL BAR & METRİKLER (KPI & ARA-FİLTRE)
+       2. AÇILIR/KAPANIR ÖZET METRİK ÇEKMECESİ (KPI DRAWER)
        ========================================================================== -->
   <section class="dashboard-bar">
     <div id="metricsDrawer" class="metrics-drawer collapsed">
@@ -90,8 +121,6 @@
             <span class="metric-sub">Haftanın En Çok Sevk Giren Temsilcisi</span>
           </div>
         </div>
-
-
 
         <!-- 3. En Yoğun Bölge -->
         <div class="metric-card metric-analytic highlight-lead">
@@ -146,36 +175,6 @@
             <span class="metric-sub">Tamamlanan Yükler</span>
           </div>
         </div>
-
-        <!-- 9. DİNAMİK ARAÇ BAZLI METRİK KARTLARI (EN SONDA) -->
-        <div id="vehicleMetricsContainer" style="display: contents;"></div>
-      </div>
-    </div>
-
-    <div class="controls-bar">
-      <div class="week-navigator">
-        <button id="prevWeekBtn" class="nav-btn" title="Önceki Hafta">◄</button>
-        <span id="weekTitle" class="week-title">12 - 17 Ağustos 2026</span>
-        <button id="nextWeekBtn" class="nav-btn" title="Sonraki Hafta">►</button>
-        <button id="todayWeekBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem;">Bu Hafta</button>
-        <button id="toggleMetricsDrawerBtn" class="btn-secondary" style="margin-left: 0.5rem; padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 800; color: #2563eb; border-color: #93c5fd;" title="Özet Metrikleri ve Fiyatları Göster/Gizle">
-          📊 Özet Metrikler & Fiyatlar ▼
-        </button>
-      </div>
-
-      <div class="search-filter-group">
-        <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" placeholder="Müşteri, adres, temsilci ara...">
-        </div>
-        <select id="filterStatusSelect" class="filter-select">
-          <option value="ALL">Tüm Durumlar</option>
-          <option value="Beklemede">Beklemede</option>
-          <option value="Hazırlanıyor">Hazırlanıyor</option>
-          <option value="Yolda">Yolda</option>
-          <option value="Teslim Edildi">Teslim Edildi</option>
-          <option value="İptal">İptal</option>
-        </select>
       </div>
     </div>
   </section>
@@ -288,6 +287,7 @@
             <div class="form-group full-width">
               <label for="inputAddress">Teslimat Adresi</label>
               <textarea id="inputAddress" rows="2" placeholder="İlçe ve adres bilgilerini tam giriniz..." required></textarea>
+              <div id="addressNoteAlertBox" class="address-note-alert-box" style="display: none;"></div>
             </div>
 
             <div class="form-group full-width">
@@ -347,37 +347,55 @@
   </div>
 
   <!-- ==========================================================================
-       7. HAFTALIK SEVKİYAT / BEKLEYEN YÜK NOTU GİRİŞ MODALİ (NOTE MODAL)
+       7. HAFTALIK SEVKİYAT VE BEKLEYEN YÜK DUYURUSU MODALİ
        ========================================================================== -->
   <div id="noteModal" class="modal-overlay">
-    <div class="modal-card" style="max-width: 520px;">
-      <div class="modal-header">
-        <h2>📢 SEVKİYAT VE BEKLEYEN YÜK NOTU</h2>
+    <div class="modal-card note-modal-card" style="max-width: 660px; width: 95%;">
+      <div class="modal-header" style="padding: 1rem 1.4rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div class="note-modal-icon-badge">📢</div>
+          <div>
+            <h2 style="font-size: 1.05rem; font-weight: 800; margin: 0; color: #ffffff;">SEVKİYAT VE BEKLEYEN YÜK DUYURUSU</h2>
+            <p style="font-size: 0.73rem; color: #94a3b8; margin: 0.15rem 0 0 0;">Bekleyen müşterileri, şehirleri ve varsa ürün içeriklerini liste halinde ekleyebilirsiniz.</p>
+          </div>
+        </div>
         <button id="closeNoteModalBtn" class="modal-close-btn">&times;</button>
       </div>
       <form id="noteForm">
-        <div class="modal-body">
-          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
-            Ekranın üst kısmında tüm personel ve canlı izleme ekranlarında görünecek duyuru notunu yazınız.
-          </p>
-          <div class="form-group full-width">
-            <label for="inputWeeklyNoteText">Sevkiyat Duyuru Notu</label>
-            <textarea id="inputWeeklyNoteText" rows="3" placeholder="Örn: Borçka yükü için 2. müşteri beklenmektedir." required></textarea>
+        <div class="modal-body" style="padding: 1.1rem 1.4rem;">
+
+          <!-- Bekleyen Müşteri / Yük Giriş Satırları -->
+          <div class="pending-entries-header">
+            <span class="pending-entries-title">📋 BEKLEYEN YÜK / MÜŞTERİ LİSTESİ</span>
+            <button type="button" id="btnAddPendingEntryRow" class="btn-add-pending-row">
+              ➕ Yeni Satır Ekle
+            </button>
           </div>
-          <div style="margin-top: 0.75rem;">
-            <label style="font-size: 0.75rem; font-weight: 800; color: #475569; display: block; margin-bottom: 0.4rem;">Hızlı Not Şablonları (Tıklayarak Ekleyin):</label>
-            <div class="quick-template-buttons">
-              <button type="button" class="btn-template-chip" data-template="Borçka yükü için 2. müşteri beklenmektedir.">💡 Borçka 2. Müşteri Bekleniyor</button>
-              <button type="button" class="btn-template-chip" data-template="Araç doluluğu %50 - 2. sevk beklenmektedir.">💡 2. Sevk Beklenmektedir</button>
-              <button type="button" class="btn-template-chip" data-template="Depodan malzeme çıkışı beklenmektedir.">💡 Malzeme Çıkışı Bekleniyor</button>
-            </div>
+
+          <div id="pendingEntriesContainer" class="pending-entries-container">
+            <!-- JavaScript ile dinamik satırlar üretilecek -->
           </div>
+
+          <!-- Opsiyonel Ek Açıklama / Serbest Not Alanı -->
+          <div class="form-group full-width" style="margin-top: 1rem;">
+            <label for="inputWeeklyNoteText" style="font-size: 0.75rem; font-weight: 800; color: #64748b; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+              <span>Önizleme & Ek Duyuru Notu (Otomatik Oluşturulur):</span>
+              <span id="detectedRegionBadge" class="detected-region-badge" style="display: none;"></span>
+            </label>
+            <textarea id="inputWeeklyNoteText" rows="2" placeholder="Yukarıdaki satırlardan otomatik derlenir veya doğrudan yazabilirsiniz..." class="settings-input" style="font-size: 0.8rem;"></textarea>
+          </div>
+
         </div>
-        <div class="modal-footer" style="justify-content: space-between;">
-          <button type="button" id="cancelNoteModalBtn" class="btn-secondary">İptal</button>
-          <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #f59e0b;">
-            <span>📢 Kaydet ve Yayınla</span>
-          </button>
+        <div class="modal-footer" style="justify-content: space-between; padding: 0.85rem 1.4rem;">
+          <button type="button" id="cancelNoteModalBtn" class="btn-secondary">Vazgeç</button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" id="btnClearCurrentNote" class="btn-secondary" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.35);">
+              🗑️ Duyuruyu Temizle
+            </button>
+            <button type="submit" class="btn-primary" style="background: linear-gradient(135deg, #d97706 0%, #b45309 100%); border-color: #f59e0b; box-shadow: 0 2px 10px rgba(217, 119, 6, 0.3);">
+              <span>📢 Kaydet & Canlı Yayınla</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -389,39 +407,54 @@
        10. BIRLESTIRILMIS KURUMSAL SISTEM AYARLARI VE İZİN YÖNETİMİ MODALI (SOL YAN MENÜLÜ)
        ========================================================================== -->
   <div id="settingsModal" class="modal-overlay">
-    <div class="modal-card settings-modal-card" style="max-width: 960px; width: 95%; margin: auto;">
-      <div class="modal-header" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
-        <h2>⚙️ KURUMSAL SİSTEM VE YÖNETİM AYARLARI</h2>
-        <button id="closeSettingsModalBtn" class="modal-close-btn">&times;</button>
+    <div class="modal-card settings-modal-card" style="max-width: 980px; width: 95%; margin: auto;">
+      <div class="modal-header settings-modern-header">
+        <div class="settings-header-info">
+          <div class="settings-header-icon-badge">⚙️</div>
+          <div>
+            <h2 class="settings-modal-title">KURUMSAL SİSTEM VE YÖNETİM AYARLARI</h2>
+            <p class="settings-modal-subtitle">Personel yetkileri, filo, saha temsilcileri ve operasyonel tercihler</p>
+          </div>
+        </div>
+        <div class="settings-header-right">
+          <div class="settings-active-user-chip" id="settingsActiveUserChip">
+            <span class="user-chip-dot"></span>
+            <span id="settingsActiveUserName">Yönetici</span>
+          </div>
+          <button id="closeSettingsModalBtn" class="modal-close-btn" title="Kapat (ESC)">&times;</button>
+        </div>
       </div>
       
       <div class="settings-modal-body-layout">
         <!-- SOL DİKEY YAN MENÜ (SIDEBAR) -->
         <div class="settings-sidebar" style="display: flex; flex-direction: column; justify-content: space-between;">
-          <div style="display: flex; flex-direction: column; gap: 0.35rem;">
-            <button type="button" class="settings-tab-btn settings-sidebar-btn active" data-tab="tab-users">
-              <span>👥</span> Kullanıcılar & İzinler
+          <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+            <div class="settings-sidebar-group-title">YÖNETİM</div>
+            <button type="button" class="settings-tab-btn settings-sidebar-btn active" data-tab="tab-users" data-admin-only="true">
+              <span>👥</span> Personel & İzinler
             </button>
-            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-reps">
+            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-reps" data-admin-only="true">
               <span>👤</span> Pazarlamacılar
             </button>
-            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-fuel-reps">
-              <span>🚚</span> Filo & Akaryakıt
+            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-fuel-reps" data-admin-only="true">
+              <span>🚚</span> Araç Filosu
             </button>
-            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-logs">
+
+            <div class="settings-sidebar-group-title" style="margin-top: 0.5rem;">SİSTEM & GÖRÜNÜM</div>
+            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-audio">
+              <span>🎛️</span> Görünüm, Ses & Oturum
+            </button>
+            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-logs" data-admin-only="true">
               <span>📜</span> İşlem Logları
             </button>
-            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-backup">
+            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-backup" data-admin-only="true">
               <span>💾</span> Yedekleme & Şifre
-            </button>
-            <button type="button" class="settings-tab-btn settings-sidebar-btn" data-tab="tab-audio">
-              <span>🔊</span> Ses Ayarları
             </button>
           </div>
 
-          <div style="padding-top: 0.75rem; border-top: 1px solid #1e293b; margin-top: 1rem;">
-            <button type="button" id="doneSettingsModalBtn" class="btn-primary" style="width: 100%; padding: 0.6rem; font-size: 0.85rem; font-weight: 800; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; border-radius: 8px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);">
-              <span>Kaydet</span>
+          <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 1rem;">
+            <button type="button" id="doneSettingsModalBtn" class="btn-primary" style="width: 100%; padding: 0.65rem; font-size: 0.85rem; font-weight: 800; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid #38bdf8; border-radius: 8px; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+              <span>💾 Değişiklikleri Kaydet</span>
             </button>
           </div>
         </div>
@@ -432,26 +465,38 @@
           <div id="tab-users" class="settings-tab-content active">
             <div class="users-tab-layout">
               <!-- Sol Kolon: Yeni Kullanıcı Ekleme Formu -->
-              <div class="user-column-box">
+              <div class="user-column-box settings-card-panel">
                 <div>
-                  <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <h3 class="settings-card-panel-title">
                     <span>➕</span> Yeni Personel Tanımla
                   </h3>
+                  <p class="settings-card-panel-desc">Sisteme yeni kullanıcı ekleyin ve kişiye özel yetki sınırlarını belirleyin.</p>
+                  
                   <form id="addUserForm" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <div class="form-group">
                       <label for="inputUserName" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Personel Adı Soyadı</label>
-                      <input type="text" id="inputUserName" placeholder="Örn: Tevfik Bey, Mehmet Kaya" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+                      <input type="text" id="inputUserName" class="settings-input" placeholder="Örn: Tevfik Bey, Mehmet Kaya" required>
                     </div>
 
                     <div class="form-group">
                       <label for="inputUserPin" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">🔑 Kişisel PIN Şifresi</label>
-                      <input type="password" id="inputUserPin" placeholder="Örn: 1234, 8426" maxlength="6" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box;">
+                      <input type="password" id="inputUserPin" class="settings-input" placeholder="Örn: 1234, 8426" maxlength="6" required>
                     </div>
                     
                     <div class="form-group">
-                      <label style="font-size: 0.76rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 0.4rem;">
-                        Kişiye Özel İzin Yetkileri:
-                      </label>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label style="font-size: 0.76rem; font-weight: 800; color: #0f172a; margin: 0;">
+                          Kişiye Özel İzin Yetkileri:
+                        </label>
+                      </div>
+
+                      <!-- Hızlı Yetki Şablon Butonları -->
+                      <div class="preset-bar">
+                        <button type="button" id="btnPresetAdmin" class="preset-pill-btn" title="Tüm izinleri aç">⚡ Yönetici</button>
+                        <button type="button" id="btnPresetStaff" class="preset-pill-btn" title="Silme ve Ayarlar hariç izin ver">💼 Saha Sorumlusu</button>
+                        <button type="button" id="btnPresetReadOnly" class="preset-pill-btn" title="Tüm izinleri kaldır">👁️ Sadece İzleme</button>
+                      </div>
+
                       <div class="perm-grid-modern">
                         <label class="perm-card-chip">
                           <span class="label-text">Sevkiyat Ekleme</span>
@@ -478,24 +523,25 @@
                           <input type="checkbox" id="permStatus" checked>
                         </label>
 
-                        <label class="perm-card-chip full-width" style="background: #fef2f2; border-color: #fca5a5;">
-                          <span class="label-text" style="color: #991b1b;">Sistem Ayarlarını Yönetebilir</span>
+                        <label class="perm-card-chip full-width" style="background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.35);">
+                          <span class="label-text" style="color: #dc2626; font-weight: 800;">👑 Sistem Ayarlarını Yönetebilir</span>
                           <input type="checkbox" id="permSettings">
                         </label>
                       </div>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="padding: 0.55rem 1rem; width: 100%; margin-top: 0.25rem;"><span>👤 Kullanıcıyı Kaydet</span></button>
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1rem; width: 100%; margin-top: 0.25rem;"><span>👤 Kullanıcıyı Kaydet</span></button>
                   </form>
                 </div>
               </div>
 
               <!-- Sağ Kolon: Tanımlı Personel Listesi -->
-              <div class="user-column-box">
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
+              <div class="user-column-box settings-card-panel">
+                <h3 class="settings-card-panel-title">
                   <span>📋</span> Tanımlı Personeller & İzinler
                 </h3>
-                <div class="user-list-container">
+                <p class="settings-card-panel-desc">Sistemde yetkilendirilmiş personeller ve aktif izin rozetleri.</p>
+                <div class="user-list-container" style="flex: 1; overflow-y: auto;">
                   <ul id="userListEl" class="user-list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem;">
                     <!-- JS Dinamik Dolduracak -->
                   </ul>
@@ -508,17 +554,18 @@
           <div id="tab-reps" class="settings-tab-content" style="display: none;">
             <div class="settings-grid-responsive">
               <!-- Sol Kolon: Yeni Pazarlamacı Ekle -->
-              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div class="settings-card-panel" style="justify-content: space-between;">
                 <div>
-                  <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <h3 class="settings-card-panel-title">
                     <span>👤</span> Yeni Pazarlamacı / Temsilci Ekle
                   </h3>
+                  <p class="settings-card-panel-desc">Sevkiyat oluşturulurken seçilecek saha satış ve pazarlama temsilcilerini tanımlayın.</p>
                   <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <div class="form-group">
                       <label for="newRepInput" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Temsilci Adı Soyadı</label>
-                      <input type="text" id="newRepInput" placeholder="Örn: Ahmet Yılmaz, Mustafa Kaya" style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                      <input type="text" id="newRepInput" class="settings-input" placeholder="Örn: Ahmet Yılmaz, Mustafa Kaya">
                     </div>
-                    <button type="button" id="addRepBtn" class="btn-primary" style="padding: 0.5rem 1rem; width: 100%; margin-top: 0.25rem;">
+                    <button type="button" id="addRepBtn" class="btn-primary" style="padding: 0.6rem 1rem; width: 100%; margin-top: 0.25rem;">
                       <span>➕ Pazarlamacı Ekle</span>
                     </button>
                   </div>
@@ -526,11 +573,14 @@
               </div>
 
               <!-- Sağ Kolon: Kayıtlı Pazarlamacı Listesi -->
-              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
-                  <span>📋</span> Kayıtlı Pazarlamacılar Listesi
-                </h3>
-                <div class="rep-list-container" style="max-height: 280px; overflow-y: auto;">
+              <div class="settings-card-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                  <h3 class="settings-card-panel-title" style="margin: 0;">
+                    <span>📋</span> Kayıtlı Pazarlamacılar Listesi
+                  </h3>
+                </div>
+                <p class="settings-card-panel-desc">Sistemde sevkiyat girişi yapabilen aktif pazarlamacılar.</p>
+                <div class="rep-list-container" style="max-height: 320px; overflow-y: auto;">
                   <ul id="repListEl" class="rep-list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
                     <!-- JS Dinamik Dolduracak -->
                   </ul>
@@ -539,33 +589,53 @@
             </div>
           </div>
 
-          <!-- SEKME 3: GÖRÜNÜM VE SES AYARLARI -->
+          <!-- SEKME 3: EKRAN, SES VE OTURUM AYARLARI -->
           <div id="tab-audio" class="settings-tab-content" style="display: none;">
-            <div style="background: #f8fafc; padding: 1.25rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 1.25rem;">
-              <div>
-                <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem;">🎨 Sistem Tema Tercihi</h3>
-                <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem;">Yönetici paneli ve canlı izleme ekranı için karanlık veya aydınlık tema seçin.</p>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <!-- 1. Görünüm & Tema -->
+              <div class="settings-card-panel">
+                <h3 class="settings-card-panel-title">🎨 Ekran Görünümü & Tema Tercihi</h3>
+                <p class="settings-card-panel-desc">Yönetici paneli ve canlı TV izleme ekranı için görünüm temasını seçin.</p>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                   <button type="button" id="btnThemeDarkModal" class="btn-primary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
-                    <span>🌙</span> Karanlık Tema (Varsayılan)
+                    <span>🌙</span> Karanlık Tema
                   </button>
                   <button type="button" id="btnThemeLightModal" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
-                    <span>☀️</span> Aydınlık Tema (Beyaz)
+                    <span>☀️</span> Aydınlık Tema
+                  </button>
+                  <button type="button" id="fullscreenToggleBtn" class="btn-secondary fullscreen-toggle-btn" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <span class="fullscreen-icon">⛶</span> <span class="fullscreen-text">Tam Ekran</span>
                   </button>
                 </div>
               </div>
 
-              <hr style="border: 0; border-top: 1px solid #e2e8f0;">
-
-              <div>
-                <h3 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin-bottom: 0.4rem;">🔊 Operasyonel Sesli Uyarılar</h3>
-                <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 0.75rem;">Yeni bir sevkiyat eklendiğinde veya canlı izleme ekranında uyarı verildiğinde sesli sinyal çalar.</p>
+              <!-- 2. Sesli Bildirimler -->
+              <div class="settings-card-panel">
+                <h3 class="settings-card-panel-title">🔊 Operasyonel Sesli Uyarılar</h3>
+                <p class="settings-card-panel-desc">Yeni sevkiyat eklendiğinde, transfer yapıldığında veya durum değiştiğinde sesli uyarı verilir.</p>
                 <div style="display: flex; gap: 0.85rem; flex-wrap: wrap;">
                   <button type="button" id="audioToggleBtnModal" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
                     Sesli Bildirimler: Açık
                   </button>
                   <button type="button" id="testSoundBtnModal" class="btn-primary" style="padding: 0.6rem 1.2rem; font-weight: 800;">
-                    Ses Motorunu Test Et
+                    🔔 Ses Motorunu Test Et
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. Oturum & Ekran Geçişleri -->
+              <div class="settings-card-panel">
+                <h3 class="settings-card-panel-title">🔐 Oturum & Ekran Geçiş Kontrolleri</h3>
+                <p class="settings-card-panel-desc">Canlı TV izleme ekranına geçiş yapabilir, aktif personeli değiştirebilir veya oturumu kapatabilirsiniz.</p>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <a href="index.html" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; background: #e0f2fe; color: #0369a1; border-color: #7dd3fc;">
+                    <span>📺</span> Canlı TV İzleme Ekranı
+                  </a>
+                  <button type="button" id="btnSwitchUser" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <span>🔄</span> Personel / PIN Değiştir
+                  </button>
+                  <button type="button" id="btnLogoutAdmin" class="btn-secondary" style="padding: 0.6rem 1.2rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; background: #fef2f2; color: #dc2626; border-color: #fca5a5;">
+                    <span>🚪</span> Güvenli Çıkış Yap
                   </button>
                 </div>
               </div>
@@ -574,20 +644,25 @@
 
           <!-- SEKME 4: İŞLEM LOGLARI -->
           <div id="tab-logs" class="settings-tab-content" style="display: none;">
-            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.75rem;">
+            <div class="settings-card-panel" style="gap: 0.75rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                 <div>
-                  <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.2rem;">📜 İşlem ve Değişiklik Denetim Kayıtları</h3>
-                  <p style="font-size: 0.76rem; color: #64748b;">Kim, ne zaman, hangi işlem yaptı canlı takip edilir.</p>
+                  <h3 class="settings-card-panel-title" style="margin-bottom: 0.15rem;">📜 İşlem ve Değişiklik Denetim Kayıtları</h3>
+                  <p class="settings-card-panel-desc" style="margin-bottom: 0;">Kim, ne zaman, hangi sevkiyatı ekledi/düzenledi canlı olarak denetlenir.</p>
                 </div>
-                <button type="button" id="clearAuditLogsBtn" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.78rem; color: #dc2626; border-color: #fca5a5;">
-                  🗑️ Logları Temizle
-                </button>
+                <div style="display: flex; gap: 0.4rem;">
+                  <button type="button" id="exportAuditLogsBtn" class="btn-secondary" style="padding: 0.45rem 0.8rem; font-size: 0.78rem; font-weight: 800;" title="Logları CSV olarak indir">
+                    📥 CSV İndir
+                  </button>
+                  <button type="button" id="clearAuditLogsBtn" class="btn-secondary" style="padding: 0.45rem 0.8rem; font-size: 0.78rem; font-weight: 800; color: #dc2626; border-color: #fca5a5;">
+                    🗑️ Logları Temizle
+                  </button>
+                </div>
               </div>
 
               <div class="log-filter-bar" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                <input type="text" id="auditLogSearchInput" placeholder="Loglarda arama yapın..." style="flex: 1; min-width: 180px; padding: 0.4rem 0.65rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid #cbd5e1;">
-                <select id="auditLogActionFilter" style="padding: 0.4rem 0.65rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff;">
+                <input type="text" id="auditLogSearchInput" class="settings-input" placeholder="Müşteri, personel veya işlem ara..." style="flex: 1; min-width: 180px;">
+                <select id="auditLogActionFilter" class="settings-input" style="width: auto; min-width: 170px;">
                   <option value="ALL">Tüm İşlem Tipleri</option>
                   <option value="ADD">➕ Sevkiyat Ekleme</option>
                   <option value="UPDATE">✏️ Düzenleme</option>
@@ -598,48 +673,54 @@
                 </select>
               </div>
 
-              <div class="audit-log-list-container" style="max-height: 280px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 6px; background: #ffffff; padding: 0.5rem;">
+              <div class="audit-log-list-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.5rem;">
                 <ul id="auditLogListEl" class="audit-log-list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem;">
                   <!-- JS Dinamik Dolduracak -->
                 </ul>
               </div>
               
               <div style="font-size: 0.76rem; color: #64748b; font-weight: 700; text-align: right;">
-                Toplam Kayıt: <strong id="auditLogTotalCount" style="color: #0f172a;">0</strong>
+                Toplam Denetim Kaydı: <strong id="auditLogTotalCount" style="color: #0284c7;">0</strong>
               </div>
             </div>
           </div>
 
-          <!-- SEKME 4: AKARYAKIT VE FİLO YÖNETİMİ -->
+          <!-- SEKME 4: ARAÇ FİLO YÖNETİMİ -->
           <div id="tab-fuel-reps" class="settings-tab-content" style="display: none;">
             <div class="settings-grid-responsive">
               <!-- Sol Kolon: Yeni Araç Tanımla -->
-              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div class="settings-card-panel" style="justify-content: space-between;">
                 <div>
-                  <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
-                    <span>🚚</span> Yeni Araç Filosu Tanımla
+                  <h3 class="settings-card-panel-title">
+                    <span>🚚</span> Yeni Araç Tanımla
                   </h3>
+                  <p class="settings-card-panel-desc">Sevkiyatlara atanacak nakliye araçlarını ve plakalarını kaydedin.</p>
                   <form id="addVehicleForm" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <div class="form-group">
                       <label for="inputVehicleName" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Plaka ve Araç Adı</label>
-                      <input type="text" id="inputVehicleName" placeholder="Örn: 08 AAB 123 - FUSO Kamyon" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px;">
-                    </div>
-                    <div class="form-group">
-                      <label for="inputVehicleFuelRate" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">100 Km'deki Ortalama Tüketim (Litre)</label>
-                      <input type="number" step="0.1" id="inputVehicleFuelRate" placeholder="Örn: 18.0" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                      <input type="text" id="inputVehicleName" class="settings-input" placeholder="Örn: 08 AAB 123 - FUSO Kamyon" required>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; width: 100%; margin-top: 0.25rem;"><span>🚚 Aracı Kaydet</span></button>
+                    <!-- Hızlı Araç Tipi Etiketleri -->
+                    <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                      <button type="button" class="preset-pill-btn btn-quick-veh-type" data-type="Kamyon">🚛 Kamyon</button>
+                      <button type="button" class="preset-pill-btn btn-quick-veh-type" data-type="Kamyonet">🚚 Kamyonet</button>
+                      <button type="button" class="preset-pill-btn btn-quick-veh-type" data-type="Transit Van">🚐 Transit Van</button>
+                      <button type="button" class="preset-pill-btn btn-quick-veh-type" data-type="Tır">🚜 Tır</button>
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1rem; width: 100%; margin-top: 0.35rem;"><span>🚚 Aracı Kaydet</span></button>
                   </form>
                 </div>
               </div>
 
               <!-- Sağ Kolon: Kayıtlı Araç Filosu -->
-              <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column;">
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.4rem;">
+              <div class="settings-card-panel">
+                <h3 class="settings-card-panel-title">
                   <span>📋</span> Kayıtlı Araç Filosu
                 </h3>
-                <div class="vehicle-list-container" style="max-height: 280px; overflow-y: auto;">
+                <p class="settings-card-panel-desc">Sevkiyat planlamasında kullanılan aktif araçlar.</p>
+                <div class="vehicle-list-container" style="max-height: 320px; overflow-y: auto;">
                   <ul id="vehicleListEl" class="vehicle-list" style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem;">
                     <!-- JS Dinamik Dolduracak -->
                   </ul>
@@ -648,48 +729,49 @@
             </div>
           </div>
 
-        <!-- SEKME 5: YEDEKELEME & ŞİFRE AYARLARI -->
-        <div id="tab-backup" class="settings-tab-content" style="display: none;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <!-- Sol Kolon: Sistem Veri Yedekleme & Geri Yükleme -->
-            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
-              <div>
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">💾 Sistem Veri Yedeği Al & Yükle</h3>
-                <p style="font-size: 0.78rem; color: #64748b; margin-bottom: 1rem;">Tüm sevkiyatları, kullanıcıları, araçları ve logları tek tıkla dosya olarak yedekleyebilir veya geri yükleyebilirsiniz.</p>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                  <button type="button" id="exportBackupBtn" class="btn-primary" style="padding: 0.6rem 1rem; font-weight: 800;">
-                    📥 JSON Tam Sistem Yedeği İndir
-                  </button>
+          <!-- SEKME 5: YEDEKELEME & ŞİFRE AYARLARI -->
+          <div id="tab-backup" class="settings-tab-content" style="display: none;">
+            <div class="settings-grid-responsive">
+              <!-- Sol Kolon: Sistem Veri Yedekleme & Geri Yükleme -->
+              <div class="settings-card-panel" style="justify-content: space-between;">
+                <div>
+                  <h3 class="settings-card-panel-title">💾 Sistem Veri Yedeği Al & Yükle</h3>
+                  <p class="settings-card-panel-desc">Tüm sevkiyatları, personelleri, araçları ve işlem kayıtlarını güvenle bilgisayarınıza JSON formatında indirin veya geri yükleyin.</p>
                   
-                  <div style="border-top: 1px solid #e2e8f0; padding-top: 0.75rem;">
-                    <label style="font-size: 0.76rem; font-weight: 800; color: #0f172a; display: block; margin-bottom: 0.35rem;">📤 Yedekten Geri Yükle (.json)</label>
-                    <input type="file" id="importBackupInput" accept=".json" style="font-size: 0.8rem; margin-bottom: 0.5rem; width: 100%;">
-                    <button type="button" id="importBackupBtn" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.78rem; width: 100%; font-weight: 800;">
-                      ♻️ Yedeği Sisteme Yükle
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <button type="button" id="exportBackupBtn" class="btn-primary" style="padding: 0.65rem 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                      <span>📥</span> JSON Tam Sistem Yedeği İndir
                     </button>
+                    
+                    <div style="border-top: 1px solid var(--border-color, #e2e8f0); padding-top: 0.85rem; margin-top: 0.35rem;">
+                      <label style="font-size: 0.76rem; font-weight: 800; color: var(--text-main, #0f172a); display: block; margin-bottom: 0.35rem;">📤 Yedekten Geri Yükle (.json)</label>
+                      <input type="file" id="importBackupInput" accept=".json" class="settings-input" style="margin-bottom: 0.5rem; padding: 0.4rem;">
+                      <button type="button" id="importBackupBtn" class="btn-secondary" style="padding: 0.55rem 1rem; font-size: 0.8rem; width: 100%; font-weight: 800;">
+                        ♻️ Yedeği Sisteme Yükle
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Sağ Kolon: Kendi Şifreni Değiştir -->
-            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: space-between;">
-              <div>
-                <h3 style="font-size: 0.9rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">🔑 Kendi PIN Şifreni Değiştir</h3>
-                <p style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.85rem;">Şu an oturum açmış olduğunuz hesabınızın giriş PIN kodunu güncelleyin.</p>
-                
-                <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 0.75rem;">
-                  <div class="form-group">
-                    <label for="inputCurrentPin" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Mevcut PIN Şifreniz</label>
-                    <input type="password" id="inputCurrentPin" maxlength="6" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px;">
-                  </div>
-                  <div class="form-group">
-                    <label for="inputNewPin" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Yeni PIN Şifreniz</label>
-                    <input type="password" id="inputNewPin" maxlength="6" required style="width: 100%; padding: 0.5rem; font-size: 0.82rem; border: 1px solid #cbd5e1; border-radius: 6px;">
-                  </div>
-                  <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem;"><span>🔑 Şifreyi Güncelle</span></button>
-                </form>
+              <!-- Sağ Kolon: Kendi Şifreni Değiştir -->
+              <div class="settings-card-panel" style="justify-content: space-between;">
+                <div>
+                  <h3 class="settings-card-panel-title">🔑 Kendi PIN Şifreni Değiştir</h3>
+                  <p class="settings-card-panel-desc">Şu an oturum açmış olduğunuz personelin giriş PIN şifresini güncelleyin.</p>
+                  
+                  <form id="changePasswordForm" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div class="form-group">
+                      <label for="inputCurrentPin" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Mevcut PIN Şifreniz</label>
+                      <input type="password" id="inputCurrentPin" class="settings-input" maxlength="6" placeholder="Mevcut 4-6 haneli PIN" required>
+                    </div>
+                    <div class="form-group">
+                      <label for="inputNewPin" style="font-size: 0.76rem; font-weight: 700; color: #475569; margin-bottom: 0.25rem; display: block;">Yeni PIN Şifreniz</label>
+                      <input type="password" id="inputNewPin" class="settings-input" maxlength="6" placeholder="Yeni 4-6 haneli PIN" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="padding: 0.6rem 1rem; font-weight: 800;"><span>🔑 Şifreyi Güncelle</span></button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -697,7 +779,6 @@
       </div>
     </div>
   </div>
-</div>
 
   <!-- ==========================================================================
        11. GÜN DURUMU / SEVK KAPATMA MODALİ (ŞOFÖR İZİNLİ & ARAÇ SERVİSTE)
@@ -782,6 +863,6 @@
   <!-- ÖRNEK/VARSAYILAN VERİ MODELİ -->
   <script src="js/mockData.js?v=1.3"></script>
   <!-- ANA UYGULAMA MANTIĞI -->
-  <script src="js/app.js?v=2.8"></script>
+  <script src="js/app.js?v=2.9"></script>
 </body>
 </html>

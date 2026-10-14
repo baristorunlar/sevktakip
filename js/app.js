@@ -14,7 +14,6 @@ class ShipmentApp {
     this.auditLogs = []; // İşlem ve değişiklik denetim log kayıtları
     this.users = []; // Kullanıcılar ve Özel İzin Yetkileri Listesi
     this.vehicles = []; // Araç Filosu Listesi
-    this.fuelPrices = { diesel: '47.10', gasoline: '46.65' }; // Artvin / Arhavi Canlı Akaryakıt Fiyatları
     this.currentWeekStart = this.getMonday(new Date());
     this.draggedShipmentId = null;
     this.searchTerm = '';
@@ -50,10 +49,6 @@ class ShipmentApp {
     this.pendingCountEl = document.getElementById('pendingCount');
     this.transitCountEl = document.getElementById('transitCount');
     this.deliveredCountEl = document.getElementById('deliveredCount');
-    this.dieselPriceValEl = document.getElementById('dieselPriceVal');
-    this.gasolinePriceValEl = document.getElementById('gasolinePriceVal');
-    this.dieselCardBtn = document.getElementById('dieselCardBtn');
-    this.gasolineCardBtn = document.getElementById('gasolineCardBtn');
     this.metricsDrawer = document.getElementById('metricsDrawer');
     this.toggleMetricsDrawerBtn = document.getElementById('toggleMetricsDrawerBtn');
 
@@ -165,13 +160,6 @@ class ShipmentApp {
         this.auditLogs = [];
       }
 
-      const savedFuel = localStorage.getItem('sevkiyat_fuel_prices_v1');
-      if (savedFuel) {
-        this.fuelPrices = JSON.parse(savedFuel);
-      } else {
-        this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
-      }
-
       const savedUsers = localStorage.getItem('sevkiyat_users_v1');
       if (savedUsers) {
         this.users = JSON.parse(savedUsers);
@@ -179,7 +167,7 @@ class ShipmentApp {
         this.users = [
           {
             id: 'USR-ADMIN',
-            name: '👑 Yönetici (Barış Bey)',
+            name: 'Yönetici (Barış Bey)',
             pin: '8426',
             role: 'ADMIN',
             permissions: { canAdd: true, canEdit: true, canDelete: true, canTransfer: true, canSettings: true }
@@ -193,9 +181,9 @@ class ShipmentApp {
         this.vehicles = JSON.parse(savedVehicles);
       } else {
         this.vehicles = [
-          { id: 'VEH-1', name: '08 AAB 123 - FUSO Kamyon', type: 'KAMYON', fuelRate: 18.0 },
-          { id: 'VEH-2', name: '08 K 4567 - Isuzu NPR Kamyonet', type: 'KAMYONET', fuelRate: 14.0 },
-          { id: 'VEH-3', name: '08 ARH 89 - Ford Transit Van', type: 'VAN', fuelRate: 10.0 }
+          { id: 'VEH-1', name: '08 AAB 123 - FUSO Kamyon', type: 'KAMYON' },
+          { id: 'VEH-2', name: '08 K 4567 - Isuzu NPR Kamyonet', type: 'KAMYONET' },
+          { id: 'VEH-3', name: '08 ARH 89 - Ford Transit Van', type: 'VAN' }
         ];
         localStorage.setItem('sevkiyat_vehicles_v1', JSON.stringify(this.vehicles));
       }
@@ -211,7 +199,6 @@ class ShipmentApp {
       this.auditLogs = [];
       this.users = [];
       this.vehicles = [];
-      this.fuelPrices = { diesel: '47.10', gasoline: '46.65' };
     }
   }
 
@@ -251,7 +238,7 @@ class ShipmentApp {
     this.vehicles.forEach(veh => {
       const option = document.createElement('option');
       option.value = veh.id;
-      option.textContent = `${veh.name} (${veh.fuelRate} Lt/100km)`;
+      option.textContent = veh.name;
       this.inputShipmentVehicle.appendChild(option);
     });
   }
@@ -263,7 +250,6 @@ class ShipmentApp {
       localStorage.setItem('sevkiyat_reps_v1', JSON.stringify(this.representatives));
       localStorage.setItem('sevkiyat_notes_v1', JSON.stringify(this.weeklyNotes));
       localStorage.setItem('sevkiyat_audit_logs_v1', JSON.stringify(this.auditLogs));
-      localStorage.setItem('sevkiyat_fuel_prices_v1', JSON.stringify(this.fuelPrices));
       localStorage.setItem('sevkiyat_users_v1', JSON.stringify(this.users));
       localStorage.setItem('sevkiyat_vehicles_v1', JSON.stringify(this.vehicles));
 
@@ -278,7 +264,6 @@ class ShipmentApp {
           representatives: this.representatives,
           weeklyNotes: this.weeklyNotes,
           auditLogs: this.auditLogs,
-          fuelPrices: this.fuelPrices,
           users: this.users,
           vehicles: this.vehicles
         });
@@ -315,15 +300,144 @@ class ShipmentApp {
 
     if (this.openSettingsBtn) {
       this.openSettingsBtn.addEventListener('click', () => {
-        this.renderUsers();
-        this.renderVehicles();
-        this.renderRepList();
-        this.renderAuditLogs();
+        const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
+        const canSettings = !currentUser || currentUser.role === 'ADMIN' || (currentUser.permissions && currentUser.permissions.canSettings);
+
+        document.querySelectorAll('.settings-tab-btn[data-admin-only="true"]').forEach(btn => {
+          btn.style.display = canSettings ? 'flex' : 'none';
+        });
+
+        if (!canSettings) {
+          document.querySelectorAll('.settings-tab-btn').forEach(b => b.classList.remove('active'));
+          const audioTabBtn = document.querySelector('.settings-tab-btn[data-tab="tab-audio"]');
+          if (audioTabBtn) audioTabBtn.classList.add('active');
+          document.querySelectorAll('.settings-tab-content').forEach(c => c.style.display = 'none');
+          const audioTabContent = document.getElementById('tab-audio');
+          if (audioTabContent) audioTabContent.style.display = 'block';
+        } else {
+          this.renderUsers();
+          this.renderVehicles();
+          this.renderRepList();
+          this.renderAuditLogs();
+        }
+
         if (window.syncManager) {
           this.updateModalAudioBtnUI(window.syncManager.audioEnabled);
         }
+
+        const activeNameEl = document.getElementById('settingsActiveUserName');
+        if (activeNameEl) {
+          activeNameEl.textContent = currentUser ? currentUser.name.replace(/^👑\s*/, '') : 'Yönetici';
+        }
+
         document.body.classList.add('modal-open');
         if (this.settingsModal) this.settingsModal.classList.add('active');
+      });
+    }
+
+    // Hızlı Yetki Şablon Butonları (Presets)
+    const btnPresetAdmin = document.getElementById('btnPresetAdmin');
+    const btnPresetStaff = document.getElementById('btnPresetStaff');
+    const btnPresetReadOnly = document.getElementById('btnPresetReadOnly');
+
+    if (btnPresetAdmin) {
+      btnPresetAdmin.addEventListener('click', () => {
+        if (this.permAdd) this.permAdd.checked = true;
+        if (this.permEdit) this.permEdit.checked = true;
+        if (this.permDelete) this.permDelete.checked = true;
+        if (this.permTransfer) this.permTransfer.checked = true;
+        if (this.permStatus) this.permStatus.checked = true;
+        if (this.permSettings) this.permSettings.checked = true;
+      });
+    }
+    if (btnPresetStaff) {
+      btnPresetStaff.addEventListener('click', () => {
+        if (this.permAdd) this.permAdd.checked = true;
+        if (this.permEdit) this.permEdit.checked = true;
+        if (this.permDelete) this.permDelete.checked = false;
+        if (this.permTransfer) this.permTransfer.checked = true;
+        if (this.permStatus) this.permStatus.checked = true;
+        if (this.permSettings) this.permSettings.checked = false;
+      });
+    }
+    if (btnPresetReadOnly) {
+      btnPresetReadOnly.addEventListener('click', () => {
+        if (this.permAdd) this.permAdd.checked = false;
+        if (this.permEdit) this.permEdit.checked = false;
+        if (this.permDelete) this.permDelete.checked = false;
+        if (this.permTransfer) this.permTransfer.checked = false;
+        if (this.permStatus) this.permStatus.checked = false;
+        if (this.permSettings) this.permSettings.checked = false;
+      });
+    }
+
+    // Hızlı Araç Tipi Butonları
+    document.querySelectorAll('.btn-quick-veh-type').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const vType = e.currentTarget.getAttribute('data-type');
+        if (this.inputVehicleName) {
+          const cur = this.inputVehicleName.value.trim();
+          if (!cur) {
+            this.inputVehicleName.value = '08 AA 000 - ' + vType;
+          } else if (!cur.includes(vType)) {
+            this.inputVehicleName.value = cur + ' (' + vType + ')';
+          }
+          this.inputVehicleName.focus();
+        }
+      });
+    });
+
+    // İşlem Logları CSV İndir
+    const exportAuditLogsBtn = document.getElementById('exportAuditLogsBtn');
+    if (exportAuditLogsBtn) {
+      exportAuditLogsBtn.addEventListener('click', () => {
+        if (!this.auditLogs || this.auditLogs.length === 0) {
+          alert("İndirilecek işlem kaydı bulunamadı.");
+          return;
+        }
+        let csv = "\uFEFFTarih;İşlem;Kullanıcı;Detay\n";
+        this.auditLogs.forEach(log => {
+          const date = log.timestamp || '';
+          const action = (log.title || log.action || '').replace(/;/g, ',');
+          const user = (log.user || 'Yönetici').replace(/;/g, ',');
+          const detail = (log.detail || '').replace(/;/g, ',').replace(/\n/g, ' ');
+          csv += `${date};${action};${user};${detail}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Gurkan_Lojistik_Islem_Loglari_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('📥 İşlem logları CSV olarak indirildi.', 'success');
+      });
+    }
+
+    // İzleme ekranı ayarlar modali (index.html & display.html)
+    const openDisplaySettingsBtn = document.getElementById('openDisplaySettingsBtn');
+    const displaySettingsModal = document.getElementById('displaySettingsModal');
+    const closeDisplaySettingsModalBtn = document.getElementById('closeDisplaySettingsModalBtn');
+    const doneDisplaySettingsModalBtn = document.getElementById('doneDisplaySettingsModalBtn');
+
+    if (openDisplaySettingsBtn && displaySettingsModal) {
+      openDisplaySettingsBtn.addEventListener('click', () => {
+        if (window.syncManager) {
+          this.updateAudioBtnUI(window.syncManager.audioEnabled);
+        }
+        document.body.classList.add('modal-open');
+        displaySettingsModal.classList.add('active');
+      });
+      const closeDisplayModal = () => {
+        document.body.classList.remove('modal-open');
+        displaySettingsModal.classList.remove('active');
+      };
+      if (closeDisplaySettingsModalBtn) closeDisplaySettingsModalBtn.addEventListener('click', closeDisplayModal);
+      if (doneDisplaySettingsModalBtn) doneDisplaySettingsModalBtn.addEventListener('click', closeDisplayModal);
+      displaySettingsModal.addEventListener('click', (e) => {
+        if (e.target === displaySettingsModal) closeDisplayModal();
       });
     }
 
@@ -536,20 +650,18 @@ class ShipmentApp {
     // Araç Ekleme Formu
     this.addVehicleForm = document.getElementById('addVehicleForm');
     this.inputVehicleName = document.getElementById('inputVehicleName');
-    this.inputVehicleFuelRate = document.getElementById('inputVehicleFuelRate');
     this.vehicleListEl = document.getElementById('vehicleListEl');
 
     if (this.addVehicleForm) {
       this.addVehicleForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const vName = this.inputVehicleName ? this.inputVehicleName.value.trim() : '';
-        const vRate = this.inputVehicleFuelRate ? parseFloat(this.inputVehicleFuelRate.value) : 18.0;
-        if (!vName || isNaN(vRate)) return;
+        if (!vName) return;
 
         if (this.editingVehicleId) {
           const idx = this.vehicles.findIndex(v => v.id === this.editingVehicleId);
           if (idx !== -1) {
-            this.vehicles[idx] = { ...this.vehicles[idx], name: vName, fuelRate: vRate };
+            this.vehicles[idx] = { ...this.vehicles[idx], name: vName };
             this.showToast(`🚚 ${vName} aracı güncellendi!`, 'success');
           }
           this.editingVehicleId = null;
@@ -558,8 +670,7 @@ class ShipmentApp {
         } else {
           const newVeh = {
             id: 'VEH-' + Date.now(),
-            name: vName,
-            fuelRate: vRate
+            name: vName
           };
           this.vehicles.push(newVeh);
           this.showToast(`🚚 ${vName} aracı filoya eklendi!`, 'success');
@@ -589,7 +700,6 @@ class ShipmentApp {
       li.innerHTML = `
         <div>
           <strong style="color:#0f172a;">🚚 ${veh.name}</strong>
-          <div style="font-size:0.72rem; color:#64748b; font-weight:700;">Ort. Tüketim: <span style="color:#0284c7;">${veh.fuelRate} Lt / 100 km</span></div>
         </div>
         <div style="display:flex; gap:0.35rem;">
           <button type="button" class="btn-edit-vehicle" data-id="${veh.id}" style="background:none; border:none; color:#0284c7; font-size:0.95rem; cursor:pointer;" title="Aracı Düzenle">✏️</button>
@@ -607,7 +717,6 @@ class ShipmentApp {
         if (!v) return;
         this.editingVehicleId = vid;
         if (this.inputVehicleName) this.inputVehicleName.value = v.name;
-        if (this.inputVehicleFuelRate) this.inputVehicleFuelRate.value = v.fuelRate;
         const submitBtn = this.addVehicleForm ? this.addVehicleForm.querySelector('button[type="submit"] span') : null;
         if (submitBtn) submitBtn.textContent = '💾 Aracı Güncelle';
       });
@@ -657,8 +766,7 @@ class ShipmentApp {
             <div class="user-avatar-badge">${initials}</div>
             <div style="display: flex; flex-direction: column; min-width: 0; flex: 1;">
               <div style="display: flex; align-items: center; gap: 0.35rem;">
-                <span class="user-name-title" style="font-size: 0.9rem; font-weight: 800; color: #0f172a; word-break: break-word; white-space: normal;">${usr.name}</span>
-                ${isAdmin ? '<span title="Yönetici" style="font-size: 0.9rem;">👑</span>' : ''}
+                <span class="user-name-title" style="font-size: 0.9rem; font-weight: 800; color: #0f172a; word-break: break-word; white-space: normal;">${usr.name.replace(/^👑\s*/, '')}</span>
               </div>
               <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; flex-wrap: wrap;">
                 <span class="user-pin-badge" style="font-size: 0.68rem; font-weight: 800;">PIN: ${usr.pin || '8426'}</span>
@@ -741,8 +849,8 @@ class ShipmentApp {
     // 1. Üst Barda Giriş Yapan Kullanıcının Adını Göster
     const badgeEl = document.getElementById('currentUserBadge');
     if (badgeEl) {
-      const isAdmin = perms.canSettings || currentUser.role === 'ADMIN';
-      badgeEl.innerHTML = `<span>${isAdmin ? '👑 ' : ''}${currentUser.name}</span>`;
+      const cleanName = currentUser.name.replace(/^👑\s*/, '');
+      badgeEl.innerHTML = `<span>${cleanName}</span>`;
     }
 
     // 2. Ekleme İzni Kontrolü (Header Butonu)
@@ -751,10 +859,9 @@ class ShipmentApp {
       addBtn.style.display = perms.canAdd ? 'inline-flex' : 'none';
     }
 
-    // 3. Ayarlar Butonu Kontrolü
+    // 3. Ayarlar Butonu Kontrolü (Ekran, Ses ve Oturum sekmesi tüm personellere açıktır)
     if (this.openSettingsBtn) {
-      const canSettings = perms.canSettings || currentUser.role === 'ADMIN';
-      this.openSettingsBtn.style.display = canSettings ? 'inline-flex' : 'none';
+      this.openSettingsBtn.style.display = 'inline-flex';
     }
 
     // 4. Duyuru Butonu Kontrolü
@@ -835,6 +942,8 @@ class ShipmentApp {
   }
 
   startLiveClock() {
+    this.lastActiveDayString = this.getMondayISOString(new Date());
+
     const update = () => {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
@@ -843,6 +952,24 @@ class ShipmentApp {
       const clockEl = document.getElementById('liveClock');
       if (clockEl) {
         clockEl.textContent = `${hours}:${minutes}:${seconds}`;
+      }
+
+      // GECE YARISI GÜN GEÇİŞİ VE "BUGÜN" VURGUSU CANLI GÜNCELLEME MOTORU
+      const currentDayString = this.getMondayISOString(now);
+      if (this.lastActiveDayString !== currentDayString) {
+        this.lastActiveDayString = currentDayString;
+
+        // Eğer kullanıcı aktif haftayı izliyorsa, takvim haftasını da gerekirse otomatik güncelle
+        const todayMonday = this.getMonday(now);
+        const isViewingActiveWeek = this.getMondayISOString(this.currentWeekStart) === this.getMondayISOString(new Date(now.getTime() - 86400000));
+        
+        if (isViewingActiveWeek && now.getDay() === 1) { // Pazar'dan Pazartesi'ye geçişte yeni haftaya atla
+          this.currentWeekStart = todayMonday;
+        }
+
+        // Sayfayı yenilemeye gerek kalmadan tüm takvim günlerini, "BUGÜN" rozetlerini ve vurgularını anında yeniden çiz
+        this.render();
+        console.log(`[Canlı Gün Güncelleme] Gün değişti (${currentDayString}). "BUGÜN" vurgusu yenilendi.`);
       }
     };
     update();
@@ -984,10 +1111,12 @@ class ShipmentApp {
         const isCollapsed = this.metricsDrawer.classList.contains('collapsed');
         if (isCollapsed) {
           this.metricsDrawer.classList.remove('collapsed');
-          this.toggleMetricsDrawerBtn.innerHTML = '📊 Özet Metrikler & Fiyatlar ▲';
+          this.toggleMetricsDrawerBtn.innerHTML = 'Özet Metrikler ▲';
+          this.toggleMetricsDrawerBtn.classList.add('active');
         } else {
           this.metricsDrawer.classList.add('collapsed');
-          this.toggleMetricsDrawerBtn.innerHTML = '📊 Özet Metrikler & Fiyatlar ▼';
+          this.toggleMetricsDrawerBtn.innerHTML = 'Özet Metrikler ▼';
+          this.toggleMetricsDrawerBtn.classList.remove('active');
         }
         setTimeout(() => this.initAutoScrollEngine(), 320);
       });
@@ -1055,6 +1184,23 @@ class ShipmentApp {
           e.preventDefault();
           this.handleFormSubmit();
         });
+      }
+
+      const inputAddressEl = document.getElementById('inputAddress');
+      const inputCustomerNameEl = document.getElementById('inputCustomerName');
+      const triggerNoteAlertCheck = () => {
+        const addr = inputAddressEl ? inputAddressEl.value : '';
+        const cust = inputCustomerNameEl ? inputCustomerNameEl.value : '';
+        this.updateAddressNoteAlert(addr, cust);
+      };
+
+      if (inputAddressEl) {
+        inputAddressEl.addEventListener('input', triggerNoteAlertCheck);
+        inputAddressEl.addEventListener('change', triggerNoteAlertCheck);
+      }
+      if (inputCustomerNameEl) {
+        inputCustomerNameEl.addEventListener('input', triggerNoteAlertCheck);
+        inputCustomerNameEl.addEventListener('change', triggerNoteAlertCheck);
       }
 
       if (this.manageRepsBtn) this.manageRepsBtn.addEventListener('click', () => this.openRepManagerModal());
@@ -1137,21 +1283,27 @@ class ShipmentApp {
         this.auditLogActionFilter.addEventListener('change', () => this.renderAuditLogList());
       }
 
-      // Hızlı Not Şablon Butonları
-      document.querySelectorAll('.btn-template-chip').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const template = btn.dataset.template;
-          if (this.inputWeeklyNoteText && template) {
-            this.inputWeeklyNoteText.value = template;
-          }
+      // Bekleyen Yük / Müşteri Satırı Ekleme Butonu
+      const btnAddPendingEntryRow = document.getElementById('btnAddPendingEntryRow');
+      if (btnAddPendingEntryRow) {
+        btnAddPendingEntryRow.addEventListener('click', () => {
+          this.addPendingNoteRow();
         });
-      });
-      // Akaryakıt Fiyat Güncelleme Click Listeners
-      if (this.dieselCardBtn) {
-        this.dieselCardBtn.addEventListener('click', () => this.promptUpdateFuel('diesel'));
       }
-      if (this.gasolineCardBtn) {
-        this.gasolineCardBtn.addEventListener('click', () => this.promptUpdateFuel('gasoline'));
+
+      // Canlı Bölge Eşleşme Rozeti Dinleyicisi
+      if (this.inputWeeklyNoteText) {
+        this.inputWeeklyNoteText.addEventListener('input', () => {
+          this.updateNoteDetectedRegionBadge();
+        });
+      }
+
+      // Modal İçinden Not Temizle Butonu
+      const btnClearCurrentNote = document.getElementById('btnClearCurrentNote');
+      if (btnClearCurrentNote) {
+        btnClearCurrentNote.addEventListener('click', () => {
+          this.clearWeeklyNote();
+        });
       }
     }
 
@@ -1453,13 +1605,121 @@ class ShipmentApp {
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
     const existingNote = this.weeklyNotes[currentWeekKey] || '';
     if (this.inputWeeklyNoteText) {
-      this.inputWeeklyNoteText.value = existingNote || 'Borçka yükü için 2. müşteri beklenmektedir.';
+      this.inputWeeklyNoteText.value = existingNote;
     }
+    this.renderPendingNoteEntries(existingNote);
+    this.updateNoteDetectedRegionBadge();
     if (this.noteModal) this.noteModal.classList.add('active');
+  }
+
+  renderPendingNoteEntries(existingNoteText = '') {
+    const container = document.getElementById('pendingEntriesContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    // Var olan not metnini parçalayarak satırlara ayırmayı dene
+    const rowsData = [];
+    if (existingNoteText && existingNoteText.trim()) {
+      const parts = existingNoteText.split(/[;|\n]/).map(p => p.trim()).filter(Boolean);
+      parts.forEach(part => {
+        // "Müşteri (Şehir) - Ürün" veya benzeri biçimleri çözümle
+        const match = part.match(/^([^(]+?)(?:\s*\(([^)]+)\))?(?:\s*-\s*(.+))?$/);
+        if (match) {
+          rowsData.push({
+            customer: match[1] ? match[1].trim() : '',
+            city: match[2] ? match[2].trim() : '',
+            product: match[3] ? match[3].trim() : ''
+          });
+        } else {
+          rowsData.push({ customer: part, city: '', product: '' });
+        }
+      });
+    }
+
+    if (rowsData.length === 0) {
+      // Varsayılan olarak 2 boş temiz satır ekle
+      this.addPendingNoteRow();
+      this.addPendingNoteRow();
+    } else {
+      rowsData.forEach(item => this.addPendingNoteRow(item.customer, item.city, item.product));
+    }
+  }
+
+  addPendingNoteRow(customerVal = '', cityVal = '', productVal = '') {
+    const container = document.getElementById('pendingEntriesContainer');
+    if (!container) return;
+
+    const row = document.createElement('div');
+    row.className = 'pending-entry-row';
+    row.innerHTML = `
+      <input type="text" class="pending-entry-input field-customer" placeholder="Müşteri Adı (Örn: Yılmaz İnş.)" value="${customerVal}">
+      <input type="text" class="pending-entry-input field-city" placeholder="Şehir / İlçe (Örn: Artvin)" value="${cityVal}">
+      <input type="text" class="pending-entry-input field-product" placeholder="Ürün / Yük İçeriği (Örn: 2 Palet Seramik)" value="${productVal}">
+      <button type="button" class="btn-remove-pending-row" title="Satırı Kaldır">✕</button>
+    `;
+
+    row.querySelectorAll('.pending-entry-input').forEach(input => {
+      input.addEventListener('input', () => this.updateNoteTextFromRows());
+    });
+
+    row.querySelector('.btn-remove-pending-row').addEventListener('click', () => {
+      row.remove();
+      this.updateNoteTextFromRows();
+    });
+
+    container.appendChild(row);
+  }
+
+  updateNoteTextFromRows() {
+    const container = document.getElementById('pendingEntriesContainer');
+    if (!container || !this.inputWeeklyNoteText) return;
+
+    const rows = container.querySelectorAll('.pending-entry-row');
+    const noteParts = [];
+
+    rows.forEach(r => {
+      const cust = r.querySelector('.field-customer').value.trim();
+      const city = r.querySelector('.field-city').value.trim();
+      const prod = r.querySelector('.field-product').value.trim();
+
+      if (cust || city || prod) {
+        let entryStr = cust || 'Müşteri';
+        if (city) entryStr += ` (${city})`;
+        if (prod) entryStr += ` - ${prod}`;
+        noteParts.push(entryStr);
+      }
+    });
+
+    if (noteParts.length > 0) {
+      this.inputWeeklyNoteText.value = noteParts.join(' | ') + ' [2. Müşteri / Sevk Bekleniyor]';
+    }
+    this.updateNoteDetectedRegionBadge();
   }
 
   closeNoteModal() {
     if (this.noteModal) this.noteModal.classList.remove('active');
+  }
+
+  updateNoteDetectedRegionBadge() {
+    const badge = document.getElementById('detectedRegionBadge');
+    if (!badge || !this.inputWeeklyNoteText) return;
+
+    const text = this.inputWeeklyNoteText.value.trim();
+    if (!text) {
+      badge.style.display = 'none';
+      badge.textContent = '';
+      return;
+    }
+
+    const locations = this.extractLocationsFromText(text);
+    if (locations && locations.length > 0) {
+      const displayNames = locations.map(l => l.charAt(0).toUpperCase() + l.slice(1)).join(', ');
+      badge.style.display = 'inline-block';
+      badge.innerHTML = `🎯 Eşleşecek Hedefler: <strong>${displayNames}</strong>`;
+    } else {
+      badge.style.display = 'none';
+      badge.textContent = '';
+    }
   }
 
   handleSaveWeeklyNote() {
@@ -1469,15 +1729,15 @@ class ShipmentApp {
 
     if (noteText) {
       this.weeklyNotes[currentWeekKey] = noteText;
-      this.addAuditLog('NOTE', `📢 Sevkiyat Duyuru Notu Güncellendi`, `Yayınlanan Not: "${noteText}"`, 'Yönetici');
-      this.showToast('Sevkiyat Notu Kaydedildi', 'Haftalık duyuru notu canlı olarak yayınlandı.');
+      this.addAuditLog('NOTE', `📢 Sevkiyat Duyurusu Güncellendi`, `Yayınlanan Duyuru: "${noteText}"`, 'Yönetici');
+      this.showToast('Sevkiyat Duyurusu Kaydedildi', 'Canlı duyuru başarıyla yayınlandı.');
       if (window.syncManager && window.syncManager.audioEnabled) {
-        window.syncManager.speakText(`Yeni sevkiyat notu yayınlandı: ${noteText}`);
+        window.syncManager.speakText(`Yeni sevkiyat duyurusu yayınlandı: ${noteText}`);
       }
     } else {
       delete this.weeklyNotes[currentWeekKey];
-      this.addAuditLog('NOTE', `📢 Sevkiyat Duyuru Notu Kaldırıldı`, `Duyuru notu silindi.`, 'Yönetici');
-      this.showToast('Sevkiyat Notu Silindi', 'Haftalık duyuru notu kaldırıldı.');
+      this.addAuditLog('NOTE', `📢 Sevkiyat Duyurusu Kaldırıldı`, `Duyuru silindi.`, 'Yönetici');
+      this.showToast('Duyuru Silindi', 'Duyuru kaldırıldı.');
     }
 
     this.saveData(true, 'UPDATE_NOTE', { weekKey: currentWeekKey, note: noteText });
@@ -1494,6 +1754,130 @@ class ShipmentApp {
       this.saveData(true, 'UPDATE_NOTE', { weekKey: currentWeekKey, note: '' });
       this.renderWeeklyNoteBanner();
       this.showToast('Not Kaldırıldı', 'Duyuru notu kaldırıldı.');
+      this.closeNoteModal();
+    }
+  }
+
+  // --- AKILLI SEVKİYAT DUYURU NOTU & ADRES EŞLEŞTİRME VE UYARI MOTORU ---
+  normalizeTextForMatch(str) {
+    if (!str) return '';
+    return str
+      .toString()
+      .trim()
+      .replace(/İ/g, 'i')
+      .replace(/I/g, 'ı')
+      .replace(/Ş/g, 'ş')
+      .replace(/Ğ/g, 'ğ')
+      .replace(/Ü/g, 'ü')
+      .replace(/Ö/g, 'ö')
+      .replace(/Ç/g, 'ç')
+      .toLowerCase()
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"'«»]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  extractLocationsFromText(text) {
+    if (!text) return [];
+    const normalized = this.normalizeTextForMatch(text);
+    if (!normalized) return [];
+
+    // Bilinen 81 il ve popüler ilçe / lokasyon anahtar kelimeleri
+    const commonLocations = [
+      'adana', 'adiyaman', 'afyon', 'afyonkarahisar', 'agri', 'aksaray', 'amasya', 'ankara', 'antalya', 'ardahan', 'artvin', 'aydin',
+      'balikesir', 'bartin', 'batman', 'bayburt', 'bilecik', 'bingol', 'bitlis', 'bolu', 'burdur', 'bursa',
+      'canakkale', 'cankiri', 'corum', 'denizli', 'diyarbakir', 'duzce', 'edirne', 'elazig', 'erzincan', 'erzurum', 'eskisehir',
+      'gaziantep', 'giresun', 'gumushane', 'hakkari', 'hatay', 'igdir', 'isparta', 'istanbul', 'izmir',
+      'kahramanmaras', 'karabuk', 'karaman', 'kars', 'kastamonu', 'kayseri', 'kilis', 'kirikkale', 'kirklareli', 'kirsehir', 'kocaeli', 'konya', 'kutahya',
+      'malatya', 'manisa', 'mardin', 'mersin', 'mugla', 'mus', 'nevsehir', 'nigde', 'ordu', 'osmaniye',
+      'rize', 'sakarya', 'samsun', 'sanliurfa', 'siirt', 'sinop', 'sivas', 'sirnak', 'tekirdag', 'tokat', 'trabzon', 'tunceli',
+      'usak', 'van', 'yalova', 'yozgat', 'zonguldak',
+      // Önemli ilçe / lokasyonlar
+      'borcka', 'hopa', 'arhavi', 'savsat', 'yusufeli', 'murgul', 'kemalpasa', 'of', 'akcaabat', 'arakli', 'cayeli', 'fatsa', 'unye', 'bafra', 'carsamba', 'gebze', 'corlu', 'cerkezkoy', 'alanya', 'manavgat', 'fethiye', 'bodrum', 'inegol', 'bandirma', 'tarsus', 'ceyhan', 'iskenderun', 'erbaa', 'turhal', 'merzifon', 'polatli', 'sereflikochisar'
+    ];
+
+    const matchedLocations = [];
+
+    // 1. Bilinen tüm şehir/ilçeleri tara (Birden çok şehir varsa HEPSİNİ toplar)
+    commonLocations.forEach(loc => {
+      const regex = new RegExp(`(^|\\s)${loc}(\\s|$)`, 'i');
+      if (regex.test(normalized)) {
+        matchedLocations.push(loc);
+      }
+    });
+
+    // 2. Şehir dışında kalan müşteri adı, özel bölge veya önemli kelimeleri de topla
+    const stopWords = new Set([
+      'icin', 'için', 'yuku', 'yükü', 'musteri', 'müşteri', 'bekleniyor', 'beklenmektedir', 
+      'veya', 've', 'ile', 'arac', 'araç', 'sevk', 'sevkiyat', 'dolulugu', 'doluluğu', 
+      'malzeme', 'cıkısı', 'çıkışı', 'gunu', 'günü', 'teslimat', 'kadar', 'olan', 
+      'icin', 'sebebi', 'icin', 'icin', 'gunluk', 'haftalik', 'hazir', 'serviste'
+    ]);
+
+    const textWords = normalized.split(' ');
+    textWords.forEach(w => {
+      if (w.length >= 3 && !stopWords.has(w) && !/^\d+$/.test(w)) {
+        matchedLocations.push(w);
+      }
+    });
+
+    return [...new Set(matchedLocations)];
+  }
+
+  checkAddressAgainstWeeklyNote(addressText, customerNameText = '') {
+    const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
+    const activeNote = this.weeklyNotes ? this.weeklyNotes[currentWeekKey] : null;
+    if (!activeNote || !activeNote.trim()) return null;
+
+    const combinedSearchTarget = this.normalizeTextForMatch(`${addressText || ''} ${customerNameText || ''}`);
+    if (!combinedSearchTarget) return null;
+
+    // Duyuru metnindeki tüm hedef anahtar kelimeleri / lokasyonları / müşteri isimlerini çıkar
+    const targetsInNote = this.extractLocationsFromText(activeNote);
+
+    const hitMatches = [];
+    for (const item of targetsInNote) {
+      if (combinedSearchTarget.includes(item)) {
+        const displayItem = item.charAt(0).toUpperCase() + item.slice(1);
+        hitMatches.push(displayItem);
+      }
+    }
+
+    if (hitMatches.length > 0) {
+      const uniqueHits = [...new Set(hitMatches)];
+      return {
+        matchedWord: uniqueHits.join(' / '),
+        allMatches: uniqueHits,
+        noteText: activeNote.trim()
+      };
+    }
+
+    return null;
+  }
+
+  updateAddressNoteAlert(addressValue, customerNameValue = '') {
+    const alertBox = document.getElementById('addressNoteAlertBox');
+    if (!alertBox) return;
+
+    const match = this.checkAddressAgainstWeeklyNote(addressValue, customerNameValue);
+    if (match) {
+      alertBox.style.display = 'flex';
+      alertBox.innerHTML = `
+        <div class="address-note-alert-icon">⚠️</div>
+        <div class="address-note-alert-content">
+          <div class="address-note-alert-title">
+            <span>DİKKAT: SEVKİYAT DUYURUSU İLE EŞLEŞTİ!</span>
+          </div>
+          <div class="address-note-alert-desc">
+            Girilen <strong>"${match.matchedWord}"</strong> için aktif bir sevk duyurusu bulunmaktadır:<br>
+            <span class="address-note-alert-tag">📢 Yayındaki Duyuru</span> <em>"${match.noteText}"</em><br>
+            <strong>Bu yük te "${match.matchedWord}" için beklemedir (2./3. müşteri veya tamamlayıcı sevk bekleniyor olabilir).</strong>
+          </div>
+        </div>
+      `;
+    } else {
+      alertBox.style.display = 'none';
+      alertBox.innerHTML = '';
     }
   }
 
@@ -1655,7 +2039,6 @@ class ShipmentApp {
       representatives: this.representatives,
       weeklyNotes: this.weeklyNotes,
       auditLogs: this.auditLogs,
-      fuelPrices: this.fuelPrices,
       users: this.users,
       vehicles: this.vehicles
     };
@@ -1696,7 +2079,6 @@ class ShipmentApp {
             if (data.representatives) this.representatives = data.representatives;
             if (data.weeklyNotes) this.weeklyNotes = data.weeklyNotes;
             if (data.auditLogs) this.auditLogs = data.auditLogs;
-            if (data.fuelPrices) this.fuelPrices = data.fuelPrices;
             if (data.users) this.users = data.users;
             if (data.vehicles) this.vehicles = data.vehicles;
 
@@ -1819,11 +2201,11 @@ class ShipmentApp {
 
       fullscreenBtns.forEach(btn => {
         if (isFullscreen) {
-          btn.innerHTML = '<span class="fullscreen-icon">🗗</span> <span class="fullscreen-text">Küçült</span>';
+          btn.innerHTML = '<svg class="header-btn-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6m0 0v6m0-6L3 21m17-7h-6m0 0v6m0-6l7 7M14 4h6m-6 0v6m0-6l7-7M4 10h6m0 0V4m0 6L3 3"></path></svg> <span class="fullscreen-text">Küçült</span>';
           btn.title = 'Tam Ekrandan Çık (F11 veya Esc)';
           btn.classList.add('is-fullscreen');
         } else {
-          btn.innerHTML = '<span class="fullscreen-icon">⛶</span> <span class="fullscreen-text">Tam Ekran</span>';
+          btn.innerHTML = '<svg class="header-btn-svg" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg> <span class="fullscreen-text">Tam Ekran</span>';
           btn.title = 'Tam Ekrana Geç (F11)';
           btn.classList.remove('is-fullscreen');
         }
@@ -1982,145 +2364,6 @@ class ShipmentApp {
 
     const transferredCountEl = document.getElementById('transferredCountVal');
     if (transferredCountEl) transferredCountEl.textContent = transferred;
-
-    // Haftalık Toplam Filo Yakıt Maliyeti ve Litre Hesabı
-    let totalFuelLiters = 0;
-    let totalFuelTL = 0;
-    const vehFuelUsage = {};
-
-    activeShipments.forEach(s => {
-      const calc = this.calculateFuelForShipment(s);
-      totalFuelLiters += calc.liters;
-      totalFuelTL += calc.costTL;
-
-      const v = this.vehicles ? this.vehicles.find(v => v.id === s.vehicleId) : null;
-      const vName = v ? v.name.split('-')[0].trim() : 'Filo';
-      vehFuelUsage[vName] = (vehFuelUsage[vName] || 0) + calc.liters;
-    });
-
-    const fuelBudgetValEl = document.getElementById('fuelBudgetVal');
-    const fuelBudgetSubEl = document.getElementById('fuelBudgetSub');
-
-    if (fuelBudgetValEl) {
-      fuelBudgetValEl.textContent = `${Math.round(totalFuelTL).toLocaleString('tr-TR')} ₺ (${totalFuelLiters.toFixed(1)} Lt)`;
-    }
-    if (fuelBudgetSubEl) {
-      const topVeh = Object.entries(vehFuelUsage).sort((a,b) => b[1] - a[1])[0];
-      if (topVeh) {
-        fuelBudgetSubEl.textContent = `Lider: ${topVeh[0]} (${topVeh[1].toFixed(1)} Lt)`;
-      } else {
-        fuelBudgetSubEl.textContent = `Haftalık Tahmini Motorin`;
-      }
-    }
-
-    // Eklenen Her Araç İçin Dinamik Özet Metrik Kartı Oluştur
-    const vehicleMetricsContainer = document.getElementById('vehicleMetricsContainer');
-    if (vehicleMetricsContainer) {
-      vehicleMetricsContainer.innerHTML = '';
-      if (this.vehicles && this.vehicles.length > 0) {
-        this.vehicles.forEach(veh => {
-          let vehLiters = 0;
-          let vehTL = 0;
-          let vehShipmentCount = 0;
-
-          activeShipments.forEach(s => {
-            if (s.vehicleId === veh.id) {
-              const calc = this.calculateFuelForShipment(s);
-              vehLiters += calc.liters;
-              vehTL += calc.costTL;
-              vehShipmentCount++;
-            }
-          });
-
-          const card = document.createElement('div');
-          card.className = 'metric-card metric-analytic';
-          card.style.cssText = 'border-left: 4px solid #0284c7; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);';
-          card.innerHTML = `
-            <div class="metric-info">
-              <span class="lbl" style="font-weight: 800; color: #0369a1;">🚚 ${veh.name}</span>
-              <span class="val text-val" style="font-size: 0.95rem; color: #0284c7; font-weight: 800;">
-                ${vehLiters.toFixed(1)} Lt (${Math.round(vehTL).toLocaleString('tr-TR')} ₺)
-              </span>
-              <span class="metric-sub" style="color: #334155; font-weight: 600;">
-                Ort: ${veh.fuelRate || 18} Lt/100km | ${vehShipmentCount} Sevk
-              </span>
-            </div>
-          `;
-          vehicleMetricsContainer.appendChild(card);
-        });
-      }
-    }
-  }
-
-  // İLÇE VE ARAÇ BAZLI YAKIT VE MALİYET HESAPLAMA MOTORU
-  calculateFuelForShipment(shipment) {
-    const DISTRICT_KM = {
-      'arhavi': 15,
-      'hopa': 25,
-      'kemalpaşa': 40,
-      'kemalpasa': 40,
-      'fındıklı': 30,
-      'findikli': 30,
-      'borçka': 90,
-      'borcka': 90,
-      'artvin': 160,
-      'murgul': 110,
-      'şavşat': 260,
-      'savsat': 260,
-      'yusufeli': 260,
-      'pazar': 120,
-      'rize': 140,
-      'trabzon': 320,
-      'batum': 70
-    };
-
-    const addrLower = (shipment.deliveryAddress || '').toLowerCase();
-    let km = 30;
-    for (let key in DISTRICT_KM) {
-      if (addrLower.includes(key)) {
-        km = DISTRICT_KM[key];
-        break;
-      }
-    }
-
-    let vehRate = 18.0;
-    if (shipment.vehicleId && this.vehicles) {
-      const v = this.vehicles.find(v => v.id === shipment.vehicleId);
-      if (v && v.fuelRate) vehRate = v.fuelRate;
-    }
-
-    const liters = (km * vehRate) / 100;
-    const dieselPrice = parseFloat((this.fuelPrices && this.fuelPrices.diesel) || '47.10');
-    const costTL = liters * dieselPrice;
-
-    return { km, liters, costTL };
-  }
-
-  promptUpdateFuel(type) {
-    if (this.isReadOnly) return;
-    const isDiesel = type === 'diesel';
-    const fuelName = isDiesel ? 'Motorin (Dizel)' : 'Benzin (95 Oktan)';
-    const currentPrice = isDiesel ? (this.fuelPrices.diesel || '45.40') : (this.fuelPrices.gasoline || '44.85');
-
-    const newPrice = prompt(`Güncel ${fuelName} Litre Fiyatını Giriniz (TL):`, currentPrice);
-    if (newPrice !== null && newPrice.trim() !== '') {
-      const formattedPrice = parseFloat(newPrice.replace(',', '.')).toFixed(2);
-      if (isNaN(formattedPrice) || formattedPrice <= 0) {
-        alert("Lütfen geçerli bir fiyat giriniz!");
-        return;
-      }
-
-      if (isDiesel) {
-        this.fuelPrices.diesel = formattedPrice;
-      } else {
-        this.fuelPrices.gasoline = formattedPrice;
-      }
-
-      this.addAuditLog('UPDATE', `⛽ Akaryakıt Fiyatı Güncellendi`, `${fuelName} güncel litre fiyatı ₺${formattedPrice} / Lt olarak ayarlandı.`, 'Yönetici');
-      this.saveData(true, 'UPDATE_FUEL', { fuelPrices: this.fuelPrices });
-      this.updateDashboardMetrics();
-      this.showToast('Akaryakıt Fiyatı Güncellendi', `${fuelName} fiyatı ₺${formattedPrice} / Lt olarak kaydedildi.`);
-    }
   }
 
   // HAFTALIK SEVKİYAT / BEKLEYEN YÜK DUYURU NOTU BÖLÜMÜ
@@ -2137,12 +2380,12 @@ class ShipmentApp {
     if (noteText) {
       banner.innerHTML = `
         <div class="announcement-left">
-          <span class="announcement-badge">📢 SEVKİYAT DUYURUSU & NOTU</span>
+          <span class="announcement-badge">📢 SEVKİYAT DUYURUSU</span>
           <span class="announcement-text">"${noteText}"</span>
         </div>
         ${!this.isReadOnly ? `
           <div class="announcement-controls">
-            <button class="btn-announcement-action edit-btn" title="Duyuru Notunu Düzenle">✏️ Düzenle</button>
+            <button class="btn-announcement-action edit-btn" title="Duyuruyu Düzenle">✏️ Düzenle</button>
             <button class="btn-announcement-action delete-btn" title="Duyuruyu Sil">🗑️ Temizle</button>
           </div>
         ` : ''}
@@ -2155,12 +2398,12 @@ class ShipmentApp {
     } else {
       banner.innerHTML = `
         <div class="announcement-left placeholder">
-          <span class="announcement-badge placeholder">📢 SEVKİYAT NOT ALANI</span>
-          <span class="announcement-text placeholder">${this.isReadOnly ? 'Şu an için aktif bir sevk duyuru notu bulunmamaktadır.' : 'Henüz bu hafta için duyuru notu eklenmedi. (Örn: "Borçka yükü için 2. müşteri beklenmektedir.")'}</span>
+          <span class="announcement-badge placeholder">📢 SEVKİYAT DUYURUSU</span>
+          <span class="announcement-text placeholder">${this.isReadOnly ? 'Şu an için aktif bir sevk duyurusu bulunmamaktadır.' : 'Henüz bu hafta için sevk duyurusu eklenmedi. (Örn: "Artvin ve Hopa için 2. veya 3. müşteri bekleniyor.")'}</span>
         </div>
         ${!this.isReadOnly ? `
           <div class="announcement-controls">
-            <button class="btn-announcement-action add-btn">➕ Sevkiyat Notu Ekle</button>
+            <button class="btn-announcement-action add-btn">➕ Sevkiyat Duyurusu Ekle</button>
           </div>
         ` : ''}
       `;
@@ -2443,7 +2686,7 @@ class ShipmentApp {
       }
 
       if (!this.isReadOnly) {
-        this.attachDropzoneEvents(dropzone);
+        this.attachDropzoneEvents(dropzone, colEl);
       }
       
       this.weeklyGridEl.appendChild(colEl);
@@ -2727,8 +2970,9 @@ class ShipmentApp {
           card.addEventListener('dragstart', (e) => {
             this.draggedShipmentId = shipment.id;
             this.draggedSourceDayIndex = shipment.dayOfWeek;
+            this.isDropProcessed = false;
             
-            const parentDropzone = card.parentElement;
+            const parentDropzone = card.closest('.cards-dropzone') || card.parentElement;
             if (parentDropzone) {
               const siblings = Array.from(parentDropzone.querySelectorAll('.shipment-card'));
               this.draggedSourceIndex = siblings.indexOf(card);
@@ -2737,15 +2981,38 @@ class ShipmentApp {
             }
 
             card.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', shipment.id);
-            e.dataTransfer.effectAllowed = 'move';
+            card.dataset.draggedId = shipment.id;
+
+            if (e.dataTransfer) {
+              e.dataTransfer.setData('text/plain', shipment.id);
+              try {
+                e.dataTransfer.setData('application/json', JSON.stringify({
+                  id: shipment.id,
+                  sourceDayIndex: shipment.dayOfWeek,
+                  sourceIndex: this.draggedSourceIndex
+                }));
+              } catch (_) {}
+              e.dataTransfer.effectAllowed = 'move';
+            }
           });
 
           card.addEventListener('dragend', () => {
             card.classList.remove('dragging');
-            this.draggedShipmentId = null;
-            this.draggedSourceDayIndex = null;
-            this.draggedSourceIndex = -1;
+            document.querySelectorAll('.cards-dropzone.drag-over').forEach(dz => dz.classList.remove('drag-over'));
+
+            // Eğer bırakma işlemi (drop) başarıyla tamamlanmadıysa (örn: hızlı sürükleyip dışarı/boşluğa bırakma veya onay iptali),
+            // DOM üzerinde önizleme olarak kaydırılan kartı anında orijinal yerine geri yükle
+            if (!this.isDropProcessed) {
+              this.render();
+            }
+
+            // Olası mikro asenkron drop olaylarının referansı kaybetmemesi için state temizliğini kısa bir gecikmeyle yap
+            setTimeout(() => {
+              this.draggedShipmentId = null;
+              this.draggedSourceDayIndex = null;
+              this.draggedSourceIndex = -1;
+              this.isDropProcessed = false;
+            }, 150);
           });
 
           const transferBtn = card.querySelector('.transfer-btn');
@@ -2872,18 +3139,22 @@ class ShipmentApp {
   }
 
   // --- 4. DRAG AND DROP HANDLERS ---
-  attachDropzoneEvents(dropzone) {
+  attachDropzoneEvents(dropzone, colEl = null) {
     if (this.isReadOnly) return;
 
     const targetDayIndex = parseInt(dropzone.dataset.dayIndex, 10);
+    // Kolonun tamamına sürüklemeyi dinleyerek (header veya dropzone içi) hızlı mouse hareketlerinde hedefin kaçmasını önle
+    const container = colEl || dropzone;
 
-    dropzone.addEventListener('dragover', (e) => {
+    const handleDragOver = (e) => {
       if (this.isDayDisabled(targetDayIndex)) {
         return;
       }
 
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = 'move';
+      }
       dropzone.classList.add('drag-over');
 
       const draggingCard = document.querySelector('.shipment-card.dragging');
@@ -2895,17 +3166,18 @@ class ShipmentApp {
       } else {
         dropzone.insertBefore(draggingCard, afterElement);
       }
-    });
+    };
 
-    dropzone.addEventListener('dragleave', (e) => {
-      if (!dropzone.contains(e.relatedTarget)) {
+    const handleDragLeave = (e) => {
+      if (!container.contains(e.relatedTarget)) {
         dropzone.classList.remove('drag-over');
       }
-    });
+    };
 
-    dropzone.addEventListener('drop', (e) => {
+    const handleDrop = (e) => {
       e.preventDefault();
       dropzone.classList.remove('drag-over');
+      document.querySelectorAll('.cards-dropzone.drag-over').forEach(dz => dz.classList.remove('drag-over'));
 
       const currentUser = window.authManager ? window.authManager.getCurrentUser() : null;
       const perms = currentUser ? (currentUser.permissions || {}) : {};
@@ -2915,9 +3187,16 @@ class ShipmentApp {
         return;
       }
 
-      const draggedId = this.draggedShipmentId;
+      // Hızlı sürükleme durumlarında ID'yi en güvenilir kaynaklardan sırayla al
+      const draggingCardEl = document.querySelector('.shipment-card.dragging');
+      const draggedId = this.draggedShipmentId 
+        || (draggingCardEl ? (draggingCardEl.dataset.id || draggingCardEl.dataset.draggedId) : null) 
+        || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
 
-      if (!draggedId || !targetDayIndex) return;
+      if (!draggedId || !targetDayIndex) {
+        this.render();
+        return;
+      }
 
       if (this.isDayDisabled(targetDayIndex)) {
         const disabledInfo = this.getDayDisabledInfo(targetDayIndex);
@@ -2930,19 +3209,22 @@ class ShipmentApp {
       }
 
       const shipment = this.shipments.find(s => s.id === draggedId);
-      if (!shipment || shipment.isTransferredRecord) return;
+      if (!shipment || shipment.isTransferredRecord) {
+        this.render();
+        return;
+      }
 
       // Sürüklenen kartın bırakıldığı andaki yeni sırasını hesapla
       const cardElements = Array.from(dropzone.querySelectorAll('.shipment-card'));
-      const draggedCardEl = dropzone.querySelector(`.shipment-card.dragging`) || dropzone.querySelector(`.shipment-card[data-id="${draggedId}"]`);
-      const newIndex = cardElements.indexOf(draggedCardEl);
+      const targetCardEl = draggingCardEl || dropzone.querySelector(`.shipment-card[data-id="${draggedId}"]`);
+      const newIndex = targetCardEl ? cardElements.indexOf(targetCardEl) : -1;
 
       const oldDayIndex = this.draggedSourceDayIndex || shipment.dayOfWeek;
       const oldIndex = this.draggedSourceIndex;
 
       // KART AYNI GÜNE VE TAM OLARAK AYNI HİZAYA / SIRAYA BIRAKILDIYSA HİÇBİR ŞEY DEĞİŞMEDİ!
       if (oldDayIndex === targetDayIndex && oldIndex !== -1 && oldIndex === newIndex) {
-        // Konum değişmedi; gereksiz onay, veritabanı sorgusu veya toast tetikleme
+        this.isDropProcessed = true;
         this.render();
         return;
       }
@@ -2969,30 +3251,69 @@ class ShipmentApp {
         );
       }
 
+      // Bırakma ve onay işlemi başarıyla tamamlandı
+      this.isDropProcessed = true;
+
       const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
 
       shipment.dayOfWeek = targetDayIndex;
       shipment.weekKey = currentWeekKey;
 
       this.reorderDayShipmentsFromDOM(dropzone, targetDayIndex);
+      if (oldDayIndex !== targetDayIndex) {
+        this.reorderDayShipments(oldDayIndex);
+      }
+
       this.saveData(true, 'MOVE', shipment);
       this.render();
 
       const newDayName = dayNames[targetDayIndex] || '';
       this.showToast('Sevkiyat Taşındı', `${shipment.customerName} ${newDayName} gününe taşındı.`);
-    });
+    };
+
+    container.addEventListener('dragover', handleDragOver);
+    container.addEventListener('dragleave', handleDragLeave);
+    container.addEventListener('drop', handleDrop);
   }
 
   reorderDayShipmentsFromDOM(dropzone, dayIndex) {
     const cardElements = Array.from(dropzone.querySelectorAll('.shipment-card'));
     const orderRanks = ['1. Sevk', '2. Sevk', '3. Sevk', '4. Sevk', 'Ek Sevk'];
+    const now = Date.now();
 
     cardElements.forEach((card, index) => {
       const id = card.dataset.id;
       const shipment = this.shipments.find(s => s.id === id);
       if (shipment) {
         shipment.shipmentOrder = orderRanks[Math.min(index, 4)];
+        // Birden fazla 'Ek Sevk' veya sıralama durumunda DOM sırasının tam korunması için zaman damgasını güncelle
+        shipment.createdAt = new Date(now + index * 1000).toISOString();
       }
+    });
+  }
+
+  reorderDayShipments(dayIndex) {
+    const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
+    const dayShipments = this.shipments.filter(s => {
+      const itemWeekKey = s.weekKey || currentWeekKey;
+      return itemWeekKey === currentWeekKey && s.dayOfWeek === dayIndex && !s.isTransferredRecord;
+    });
+
+    const orderRank = { '1. Sevk': 1, '2. Sevk': 2, '3. Sevk': 3, '4. Sevk': 4, 'Ek Sevk': 5 };
+    dayShipments.sort((a, b) => {
+      const rankA = orderRank[a.shipmentOrder] || 99;
+      const rankB = orderRank[b.shipmentOrder] || 99;
+      if (rankA !== rankB) return rankA - rankB;
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      return timeA - timeB;
+    });
+
+    const orderRanks = ['1. Sevk', '2. Sevk', '3. Sevk', '4. Sevk', 'Ek Sevk'];
+    const now = Date.now();
+    dayShipments.forEach((s, idx) => {
+      s.shipmentOrder = orderRanks[Math.min(idx, 4)];
+      s.createdAt = new Date(now + idx * 1000).toISOString();
     });
   }
 
@@ -3100,6 +3421,10 @@ class ShipmentApp {
       }
     }
 
+    const currentAddr = document.getElementById('inputAddress') ? document.getElementById('inputAddress').value : '';
+    const currentCust = document.getElementById('inputCustomerName') ? document.getElementById('inputCustomerName').value : '';
+    this.updateAddressNoteAlert(currentAddr, currentCust);
+
     if (this.shipmentModal) this.shipmentModal.classList.add('active');
   }
 
@@ -3107,6 +3432,7 @@ class ShipmentApp {
     if (this.shipmentModal) this.shipmentModal.classList.remove('active');
     this.editingShipmentId = null;
     if (this.shipmentForm) this.shipmentForm.reset();
+    this.updateAddressNoteAlert('', '');
   }
 
   handleFormSubmit() {
@@ -3134,6 +3460,19 @@ class ShipmentApp {
           ? '⚠️ Seçilen günde Şoför İzinli / Yok olduğu için bu güne sevkiyat eklenemez veya sevk yazılamaz!'
           : '⚠️ Seçilen günde Araç Serviste olduğu için bu güne sevkiyat eklenemez!';
         alert(msg);
+        return;
+      }
+    }
+
+    // DUYURU & ADRES / MÜŞTERİ EŞLEŞME KONTROLÜ
+    const noteMatch = this.checkAddressAgainstWeeklyNote(deliveryAddress, customerName);
+    if (noteMatch) {
+      const confirmMsg = `⚠️ DİKKAT: SEVKİYAT DUYURUSU UYARISI!\n\n` +
+        `Girilen kayıt "${noteMatch.matchedWord}" ile eşleşti.\n` +
+        `Yayındaki Duyuru: "${noteMatch.noteText}"\n\n` +
+        `Bu yük te "${noteMatch.matchedWord}" için beklemedir (2./3. müşteri veya tamamlayıcı sevk bekleniyor olabilir).\n\n` +
+        `Sevkiyat kaydını yine de onaylayıp devam etmek istiyor musunuz?`;
+      if (!confirm(confirmMsg)) {
         return;
       }
     }
