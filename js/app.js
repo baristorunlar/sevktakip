@@ -1187,20 +1187,14 @@ class ShipmentApp {
       }
 
       const inputAddressEl = document.getElementById('inputAddress');
-      const inputCustomerNameEl = document.getElementById('inputCustomerName');
       const triggerNoteAlertCheck = () => {
         const addr = inputAddressEl ? inputAddressEl.value : '';
-        const cust = inputCustomerNameEl ? inputCustomerNameEl.value : '';
-        this.updateAddressNoteAlert(addr, cust);
+        this.updateAddressNoteAlert(addr);
       };
 
       if (inputAddressEl) {
         inputAddressEl.addEventListener('input', triggerNoteAlertCheck);
         inputAddressEl.addEventListener('change', triggerNoteAlertCheck);
-      }
-      if (inputCustomerNameEl) {
-        inputCustomerNameEl.addEventListener('input', triggerNoteAlertCheck);
-        inputCustomerNameEl.addEventListener('change', triggerNoteAlertCheck);
       }
 
       if (this.manageRepsBtn) this.manageRepsBtn.addEventListener('click', () => this.openRepManagerModal());
@@ -1779,7 +1773,9 @@ class ShipmentApp {
 
   extractLocationsFromText(text) {
     if (!text) return [];
-    const normalized = this.normalizeTextForMatch(text);
+    // "[2. Müşteri / Sevk Bekleniyor]" gibi otomatik sistem etiketlerini temizle
+    const cleanedText = text.replace(/\[.*?\]/g, ' ');
+    const normalized = this.normalizeTextForMatch(cleanedText);
     if (!normalized) return [];
 
     // Bilinen 81 il ve popüler ilçe / lokasyon anahtar kelimeleri
@@ -1793,12 +1789,32 @@ class ShipmentApp {
       'rize', 'sakarya', 'samsun', 'sanliurfa', 'siirt', 'sinop', 'sivas', 'sirnak', 'tekirdag', 'tokat', 'trabzon', 'tunceli',
       'usak', 'van', 'yalova', 'yozgat', 'zonguldak',
       // Önemli ilçe / lokasyonlar
-      'borcka', 'hopa', 'arhavi', 'savsat', 'yusufeli', 'murgul', 'kemalpasa', 'of', 'akcaabat', 'arakli', 'cayeli', 'fatsa', 'unye', 'bafra', 'carsamba', 'gebze', 'corlu', 'cerkezkoy', 'alanya', 'manavgat', 'fethiye', 'bodrum', 'inegol', 'bandirma', 'tarsus', 'ceyhan', 'iskenderun', 'erbaa', 'turhal', 'merzifon', 'polatli', 'sereflikochisar'
+      'borcka', 'hopa', 'arhavi', 'savsat', 'yusufeli', 'murgul', 'kemalpasa', 'ardanuc',
+      'pazar', 'ardesen', 'findikli', 'camlihemsin', 'cayeli', 'ikizdere', 'iyidere', 'derepazari', 'guneysu', 'kalkandere',
+      'of', 'surmene', 'arakli', 'arsin', 'yomra', 'ortahisar', 'akcaabat', 'vakfikebir', 'besikduzu', 'macka',
+      'tirebolu', 'gorele', 'bulancak', 'espiye', 'kelkit', 'oltu', 'tortum', 'ispir', 'uzundere', 'narman', 'horasan', 'pasinler',
+      'posof', 'gole', 'cildir', 'hanak', 'damal', 'fatsa', 'unye', 'bafra', 'carsamba', 'gebze', 'corlu', 'cerkezkoy',
+      'alanya', 'manavgat', 'fethiye', 'bodrum', 'inegol', 'bandirma', 'tarsus', 'ceyhan', 'iskenderun', 'erbaa', 'turhal', 'merzifon', 'polatli', 'sereflikochisar'
     ];
 
     const matchedLocations = [];
 
-    // 1. Bilinen tüm şehir/ilçeleri tara (Birden çok şehir varsa HEPSİNİ toplar)
+    // 1. Duyuru penceresinde parantez içine alınan "(Şehir / İlçe)" alanlarını doğrudan lokasyon olarak çıkar (Müşteri adı ve ürün içeriğini hariç tutar)
+    const parenMatches = cleanedText.match(/\(([^)]+)\)/g);
+    if (parenMatches && parenMatches.length > 0) {
+      parenMatches.forEach(pm => {
+        const inner = this.normalizeTextForMatch(pm.replace(/[()]/g, ' '));
+        if (inner) {
+          inner.split(' ').forEach(w => {
+            if (w.length >= 2 && !/^\d+$/.test(w)) {
+              matchedLocations.push(w);
+            }
+          });
+        }
+      });
+    }
+
+    // 2. Bilinen tüm şehir ve ilçeleri metin içinde tara (Birden çok şehir varsa hepsini toplar)
     commonLocations.forEach(loc => {
       const regex = new RegExp(`(^|\\s)${loc}(\\s|$)`, 'i');
       if (regex.test(normalized)) {
@@ -1806,38 +1822,41 @@ class ShipmentApp {
       }
     });
 
-    // 2. Şehir dışında kalan müşteri adı, özel bölge veya önemli kelimeleri de topla
-    const stopWords = new Set([
-      'icin', 'için', 'yuku', 'yükü', 'musteri', 'müşteri', 'bekleniyor', 'beklenmektedir', 
-      'veya', 've', 'ile', 'arac', 'araç', 'sevk', 'sevkiyat', 'dolulugu', 'doluluğu', 
-      'malzeme', 'cıkısı', 'çıkışı', 'gunu', 'günü', 'teslimat', 'kadar', 'olan', 
-      'icin', 'sebebi', 'icin', 'icin', 'gunluk', 'haftalik', 'hazir', 'serviste'
-    ]);
+    // 3. Eğer parantezli şehir formatı kullanılmadıysa (serbest metin yazıldıysa) ve bilinen il/ilçe bulunamadıysa lokasyon kelimelerini topla
+    if (matchedLocations.length === 0 && (!parenMatches || parenMatches.length === 0)) {
+      const stopWords = new Set([
+        'icin', 'için', 'yuku', 'yükü', 'musteri', 'müşteri', 'bekleniyor', 'beklenmektedir', 
+        'veya', 've', 'ile', 'arac', 'araç', 'sevk', 'sevkiyat', 'dolulugu', 'doluluğu', 
+        'malzeme', 'cikisi', 'çıkışı', 'gunu', 'günü', 'teslimat', 'kadar', 'olan', 
+        'sebebi', 'gunluk', 'haftalik', 'hazir', 'serviste', 'palet', 'adet', 'koli', 'ton'
+      ]);
 
-    const textWords = normalized.split(' ');
-    textWords.forEach(w => {
-      if (w.length >= 3 && !stopWords.has(w) && !/^\d+$/.test(w)) {
-        matchedLocations.push(w);
-      }
-    });
+      const textWords = normalized.split(' ');
+      textWords.forEach(w => {
+        if (w.length >= 3 && !stopWords.has(w) && !/^\d+$/.test(w)) {
+          matchedLocations.push(w);
+        }
+      });
+    }
 
     return [...new Set(matchedLocations)];
   }
 
-  checkAddressAgainstWeeklyNote(addressText, customerNameText = '') {
+  checkAddressAgainstWeeklyNote(addressText) {
     const currentWeekKey = this.getMondayISOString(this.currentWeekStart);
     const activeNote = this.weeklyNotes ? this.weeklyNotes[currentWeekKey] : null;
     if (!activeNote || !activeNote.trim()) return null;
 
-    const combinedSearchTarget = this.normalizeTextForMatch(`${addressText || ''} ${customerNameText || ''}`);
-    if (!combinedSearchTarget) return null;
+    // SADECE teslimat adresine girilen metni kontrol et (Müşteri adı vb. alanları dahil etme)
+    const addressSearchTarget = this.normalizeTextForMatch(addressText || '');
+    if (!addressSearchTarget) return null;
 
-    // Duyuru metnindeki tüm hedef anahtar kelimeleri / lokasyonları / müşteri isimlerini çıkar
+    // Duyuru metnindeki hedef şehir / lokasyonları çıkar
     const targetsInNote = this.extractLocationsFromText(activeNote);
 
     const hitMatches = [];
     for (const item of targetsInNote) {
-      if (combinedSearchTarget.includes(item)) {
+      if (addressSearchTarget.includes(item)) {
         const displayItem = item.charAt(0).toUpperCase() + item.slice(1);
         hitMatches.push(displayItem);
       }
@@ -1855,21 +1874,20 @@ class ShipmentApp {
     return null;
   }
 
-  updateAddressNoteAlert(addressValue, customerNameValue = '') {
+  updateAddressNoteAlert(addressValue) {
     const alertBox = document.getElementById('addressNoteAlertBox');
     if (!alertBox) return;
 
-    const match = this.checkAddressAgainstWeeklyNote(addressValue, customerNameValue);
+    const match = this.checkAddressAgainstWeeklyNote(addressValue);
     if (match) {
       alertBox.style.display = 'flex';
       alertBox.innerHTML = `
         <div class="address-note-alert-icon">⚠️</div>
         <div class="address-note-alert-content">
           <div class="address-note-alert-title">
-            <span>DİKKAT: SEVKİYAT DUYURUSU İLE EŞLEŞTİ!</span>
+            <span>DİKKAT: SEVKİYAT DUYURUSU İLE EŞLEŞTİ! ("${match.matchedWord}")</span>
           </div>
           <div class="address-note-alert-desc">
-            Girilen <strong>"${match.matchedWord}"</strong> için aktif bir sevk duyurusu bulunmaktadır:<br>
             <span class="address-note-alert-tag">📢 Yayındaki Duyuru</span> <em>"${match.noteText}"</em><br>
             <strong>Bu yük te "${match.matchedWord}" için beklemedir (2./3. müşteri veya tamamlayıcı sevk bekleniyor olabilir).</strong>
           </div>
@@ -3443,8 +3461,7 @@ class ShipmentApp {
     }
 
     const currentAddr = document.getElementById('inputAddress') ? document.getElementById('inputAddress').value : '';
-    const currentCust = document.getElementById('inputCustomerName') ? document.getElementById('inputCustomerName').value : '';
-    this.updateAddressNoteAlert(currentAddr, currentCust);
+    this.updateAddressNoteAlert(currentAddr);
 
     if (this.shipmentModal) this.shipmentModal.classList.add('active');
   }
@@ -3453,7 +3470,7 @@ class ShipmentApp {
     if (this.shipmentModal) this.shipmentModal.classList.remove('active');
     this.editingShipmentId = null;
     if (this.shipmentForm) this.shipmentForm.reset();
-    this.updateAddressNoteAlert('', '');
+    this.updateAddressNoteAlert('');
   }
 
   handleFormSubmit() {
@@ -3485,11 +3502,11 @@ class ShipmentApp {
       }
     }
 
-    // DUYURU & ADRES / MÜŞTERİ EŞLEŞME KONTROLÜ
-    const noteMatch = this.checkAddressAgainstWeeklyNote(deliveryAddress, customerName);
+    // DUYURU & TESLİMAT ADRESİ EŞLEŞME KONTROLÜ
+    const noteMatch = this.checkAddressAgainstWeeklyNote(deliveryAddress);
     if (noteMatch) {
       const confirmMsg = `⚠️ DİKKAT: SEVKİYAT DUYURUSU UYARISI!\n\n` +
-        `Girilen kayıt "${noteMatch.matchedWord}" ile eşleşti.\n` +
+        `Teslimat adresi "${noteMatch.matchedWord}" ile eşleşti.\n` +
         `Yayındaki Duyuru: "${noteMatch.noteText}"\n\n` +
         `Bu yük te "${noteMatch.matchedWord}" için beklemedir (2./3. müşteri veya tamamlayıcı sevk bekleniyor olabilir).\n\n` +
         `Sevkiyat kaydını yine de onaylayıp devam etmek istiyor musunuz?`;
